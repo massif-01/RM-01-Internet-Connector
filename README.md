@@ -11,7 +11,7 @@
 
 RM-01 Internet Connector is a native macOS menu bar application that shares your Mac's internet connection to RM-01 devices via the AX88179A USB Ethernet adapter.
 
-![App Screenshot](icons/1.png)
+![App Screenshot](@icons/screenshot.png)
 
 ### Features
 
@@ -109,7 +109,7 @@ Sources/
 
 RM-01 互联网连接助手是一款原生 macOS 菜单栏应用，通过 AX88179A USB 网卡将 Mac 的互联网连接共享给 RM-01 设备。
 
-![应用截图](icons/1.png)
+![应用截图](@icons/screenshot.png)
 
 ### 功能特点
 
