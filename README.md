@@ -44,13 +44,14 @@ cd "RM-01 Internet Connector"
 
 ### Usage
 
-1. **Connect your RM-01** (AX88179A adapter) to your Mac
-2. **Click the menu bar icon** to access the dropdown menu
+1. **Connect your RM-01** (AX88179A adapter) to your Mac via USB-C
+2. **Launch the app** and click the menu bar icon
 3. **Select "Connect"** to share your internet
-4. The app will:
+4. The app will automatically:
    - Configure a static IP (10.10.99.100) on the adapter
-   - Enable NAT and Internet Sharing
-5. **Select "Disconnect"** when finished
+   - Enable IP forwarding and NAT via pfctl
+   - RM-01 can now access the internet through your Mac's Wi-Fi
+5. **Select "Disconnect"** when finished (restores DHCP automatically)
 
 ### Keyboard Shortcuts
 
@@ -80,7 +81,8 @@ Sources/
 
 - **UI Framework**: SwiftUI + AppKit
 - **Build System**: Swift Package Manager
-- **Network Configuration**: Uses `networksetup` and `launchctl` via privileged AppleScript
+- **Network Configuration**: Uses `networksetup`, `pfctl`, and `sysctl` via privileged shell script
+- **NAT Method**: Direct pfctl NAT rules (does not modify System Settings → Sharing)
 - **Supported Adapters**: AX88179A USB Ethernet (RM-01 built-in chip)
 
 ### Troubleshooting
@@ -150,13 +152,14 @@ cd "RM-01 Internet Connector"
 
 ### 使用方法
 
-1. **连接 RM-01**（AX88179A 网卡）到 Mac
-2. **点击菜单栏图标**打开下拉菜单
+1. **通过 USB-C 连接 RM-01**（AX88179A 网卡）到 Mac
+2. **启动应用**并点击菜单栏图标
 3. **选择"连接"**开始共享网络
-4. 应用会自动：
+4. 应用会自动完成以下配置：
    - 在网卡上配置静态 IP (10.10.99.100)
-   - 启用 NAT 和互联网共享
-5. 完成后**选择"断开连接"**
+   - 通过 pfctl 启用 IP 转发和 NAT
+   - RM-01 即可通过 Mac 的 Wi-Fi 访问互联网
+5. 完成后**选择"断开连接"**（自动恢复 DHCP）
 
 ### 键盘快捷键
 
@@ -186,7 +189,8 @@ Sources/
 
 - **UI 框架**：SwiftUI + AppKit
 - **构建系统**：Swift Package Manager
-- **网络配置**：通过特权 AppleScript 使用 `networksetup` 和 `launchctl`
+- **网络配置**：通过特权脚本使用 `networksetup`、`pfctl` 和 `sysctl`
+- **NAT 方式**：直接配置 pfctl NAT 规则（不修改系统设置中的共享配置）
 - **支持的网卡**：AX88179A USB 网卡（RM-01 内置芯片）
 
 ### 常见问题

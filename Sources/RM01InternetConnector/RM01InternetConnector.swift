@@ -614,7 +614,7 @@ enum InterfaceDetector {
 // MARK: - Shell scripts
 
 enum ShellScripts {
-    // Applies static IP/DNS and toggles Internet Sharing restart.
+    // Applies static IP/DNS and enables NAT for Internet Sharing (Wi-Fi -> AX88179A)
     static func enableSharing(interface: String, device: String) -> String {
         """
         IFACE="\(interface)"
@@ -623,27 +623,36 @@ enum ShellScripts {
         MASK="255.255.255.0"
         GW="10.10.99.100"
         DNS="8.8.8.8"
+        NAT_CONF="/tmp/rm01_nat.conf"
+        
+        # Find Wi-Fi interface device name (internet source)
+        WIFI_DEVICE=$(/usr/sbin/networksetup -listallhardwareports | awk '/Wi-Fi/{getline; print $2}')
+        if [ -z "$WIFI_DEVICE" ]; then
+            WIFI_DEVICE="en0"
+        fi
 
         # Check if network service exists, if not create it
         if ! /usr/sbin/networksetup -listallnetworkservices | grep -q "^$IFACE$"; then
             /usr/sbin/networksetup -createnetworkservice "$IFACE" "$DEVICE"
         fi
 
+        # Set static IP and DNS for the RM-01 interface
         /usr/sbin/networksetup -setmanual "$IFACE" "$IP" "$MASK" "$GW"
         /usr/sbin/networksetup -setdnsservers "$IFACE" "$DNS"
 
-        # Configure Internet Sharing (Wi-Fi -> AX88179A)
-        /bin/launchctl unload /System/Library/LaunchDaemons/com.apple.InternetSharing.plist 2>/dev/null || true
-        /usr/bin/defaults write /Library/Preferences/SystemConfiguration/com.apple.nat NAT -dict Enabled -int 1
-        /usr/bin/defaults write /Library/Preferences/SystemConfiguration/com.apple.nat SharingNetworkNumberStart "$IP"
-        /usr/bin/defaults write /Library/Preferences/SystemConfiguration/com.apple.nat SharingNetworkMask "$MASK"
+        # Enable IP forwarding
+        /usr/sbin/sysctl -w net.inet.ip.forwarding=1
 
-        # Minimal preferences.plist toggles; may vary by macOS version.
-        /usr/libexec/PlistBuddy -c "Set :sharing:InternetSharing:InternetSharingEnabled 1" /Library/Preferences/SystemConfiguration/preferences.plist 2>/dev/null || true
-        /usr/libexec/PlistBuddy -c "Set :sharing:InternetSharing:devices:0 $IFACE" /Library/Preferences/SystemConfiguration/preferences.plist 2>/dev/null || true
-        /usr/libexec/PlistBuddy -c "Set :sharing:InternetSharing:sharefrom:0 Wi-Fi" /Library/Preferences/SystemConfiguration/preferences.plist 2>/dev/null || true
-
-        /bin/launchctl load /System/Library/LaunchDaemons/com.apple.InternetSharing.plist
+        # Create NAT rule file (share Wi-Fi to AX88179A)
+        echo "nat on $WIFI_DEVICE from $DEVICE:network to any -> ($WIFI_DEVICE)" > "$NAT_CONF"
+        
+        # Load NAT rules using pfctl
+        /sbin/pfctl -d 2>/dev/null || true
+        /sbin/pfctl -F all 2>/dev/null || true
+        /sbin/pfctl -f "$NAT_CONF" -e 2>/dev/null
+        
+        # Cleanup
+        rm -f "$NAT_CONF"
         """
     }
 
@@ -652,9 +661,12 @@ enum ShellScripts {
         IFACE="\(interface)"
         DEVICE="\(device)"
         
-        # Stop Internet Sharing
-        /bin/launchctl unload /System/Library/LaunchDaemons/com.apple.InternetSharing.plist 2>/dev/null || true
-        /usr/bin/defaults write /Library/Preferences/SystemConfiguration/com.apple.nat NAT -dict Enabled -int 0
+        # Disable IP forwarding
+        /usr/sbin/sysctl -w net.inet.ip.forwarding=0
+        
+        # Flush NAT rules and disable pfctl
+        /sbin/pfctl -d 2>/dev/null || true
+        /sbin/pfctl -F all 2>/dev/null || true
         
         # Restore DHCP for the interface
         /usr/sbin/networksetup -setdhcp "$IFACE"
