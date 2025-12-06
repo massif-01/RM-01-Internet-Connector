@@ -45,11 +45,13 @@ if [ -d "$BUILT_BUNDLE" ]; then
     echo "✅ Resource bundle copied"
 fi
 
-# Also copy icons directly to Resources root for Info.plist
+# Also copy all resources directly to Resources root for fallback access
 cp "$PROJECT_DIR/Sources/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
 cp "$PROJECT_DIR/Sources/Resources/AppIcon.png" "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
 cp "$PROJECT_DIR/Sources/Resources/statusIcon.png" "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
 cp "$PROJECT_DIR/Sources/Resources/statusIcon@2x.png" "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
+cp "$PROJECT_DIR/Sources/Resources/statusIcon@3x.png" "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
+cp "$PROJECT_DIR/Sources/Resources/body.png" "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
 
 # Create Info.plist
 cat > "$APP_BUNDLE/Contents/Info.plist" << EOF

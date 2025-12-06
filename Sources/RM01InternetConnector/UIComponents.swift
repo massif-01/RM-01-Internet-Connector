@@ -301,10 +301,31 @@ struct RM01DeviceImage: View {
     @State private var isAnimating: Bool = false
     
     private let imageCache: NSImage = {
-        if let url = Bundle.module.url(forResource: "body", withExtension: "png"),
+        let bundleName = "RM01InternetConnector_RM01InternetConnector"
+        
+        // Try multiple locations where the resource bundle might be
+        let candidates: [URL?] = [
+            Bundle.main.resourceURL?.appendingPathComponent("\(bundleName).bundle"),
+            Bundle.main.bundleURL.appendingPathComponent("\(bundleName).bundle"),
+            Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("Resources/\(bundleName).bundle"),
+        ]
+        
+        // Try resource bundle first
+        for candidate in candidates {
+            if let url = candidate,
+               let bundle = Bundle(url: url),
+               let imageUrl = bundle.url(forResource: "body", withExtension: "png"),
+               let image = NSImage(contentsOf: imageUrl) {
+                return image
+            }
+        }
+        
+        // Try main bundle's Resources directly
+        if let url = Bundle.main.url(forResource: "body", withExtension: "png"),
            let image = NSImage(contentsOf: url) {
             return image
         }
+        
         // Fallback: create placeholder image
         let placeholder = NSImage(size: NSSize(width: 50, height: 70))
         placeholder.lockFocus()

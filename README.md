@@ -70,8 +70,9 @@ Sources/
 │   └── UIComponents.swift           # SwiftUI views, localization, animations
 └── Resources/
     ├── AppIcon.icns                 # Application icon
-    ├── statusIcon.png               # Menu bar icon (16x16)
-    ├── statusIcon@2x.png            # Menu bar icon @2x (32x32)
+    ├── statusIcon.png               # Menu bar icon @1x (18x18)
+    ├── statusIcon@2x.png            # Menu bar icon @2x (36x36)
+    ├── statusIcon@3x.png            # Menu bar icon @3x (54x54)
     └── body.png                     # RM-01 device image
 ```
 
@@ -80,16 +81,23 @@ Sources/
 - **UI Framework**: SwiftUI + AppKit
 - **Build System**: Swift Package Manager
 - **Network Configuration**: Uses `networksetup` and `launchctl` via privileged AppleScript
-- **Supported Adapters**: AX88179A, USB 10/100/1000 LAN, USB Gigabit Ethernet
+- **Supported Adapters**: AX88179A USB Ethernet (RM-01 built-in chip)
 
 ### Troubleshooting
+
+**macOS says the app is "damaged and can't be opened"?**
+- This happens because the app is not code-signed. Run this command in Terminal:
+```bash
+xattr -cr /Applications/RM-01\ Internet\ Connector.app
+```
+- Then try opening the app again
 
 **Menu bar icon appears as white square?**
 - Rebuild the app with `./build.sh`
 
 **Cannot connect?**
 - Ensure the USB adapter is properly connected
-- Check System Preferences → Network for the adapter
+- Check System Settings → Network for the adapter
 - Try unplugging and reconnecting the adapter
 
 **Password prompt keeps appearing?**
@@ -168,8 +176,9 @@ Sources/
 │   └── UIComponents.swift           # SwiftUI 视图、本地化、动画
 └── Resources/
     ├── AppIcon.icns                 # 应用图标
-    ├── statusIcon.png               # 菜单栏图标 (16x16)
-    ├── statusIcon@2x.png            # 菜单栏图标 @2x (32x32)
+    ├── statusIcon.png               # 菜单栏图标 @1x (18x18)
+    ├── statusIcon@2x.png            # 菜单栏图标 @2x (36x36)
+    ├── statusIcon@3x.png            # 菜单栏图标 @3x (54x54)
     └── body.png                     # RM-01 设备图片
 ```
 
@@ -178,16 +187,23 @@ Sources/
 - **UI 框架**：SwiftUI + AppKit
 - **构建系统**：Swift Package Manager
 - **网络配置**：通过特权 AppleScript 使用 `networksetup` 和 `launchctl`
-- **支持的网卡**：AX88179A、USB 10/100/1000 LAN、USB Gigabit Ethernet
+- **支持的网卡**：AX88179A USB 网卡（RM-01 内置芯片）
 
 ### 常见问题
+
+**macOS 提示"已损坏，无法打开"？**
+- 这是因为应用没有代码签名。在终端中运行以下命令：
+```bash
+xattr -cr /Applications/RM-01\ Internet\ Connector.app
+```
+- 然后重新打开应用即可
 
 **菜单栏图标显示为白色方块？**
 - 使用 `./build.sh` 重新构建应用
 
 **无法连接？**
 - 确保 USB 网卡正确连接
-- 在系统偏好设置 → 网络中检查网卡状态
+- 在系统设置 → 网络中检查网卡状态
 - 尝试拔出并重新连接网卡
 
 **密码提示反复出现？**

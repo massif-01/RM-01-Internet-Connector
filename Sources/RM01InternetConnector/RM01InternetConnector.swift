@@ -217,16 +217,82 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
     
     // MARK: - Assets
     enum Asset {
-        static var statusIcon: NSImage? {
-            if let url = Bundle.module.url(forResource: "statusIcon", withExtension: "png"),
-               let image = NSImage(contentsOf: url) {
-                return image
+        /// Custom resource bundle locator that works both in SPM development and standalone .app
+        private static let resourceBundle: Bundle? = {
+            let bundleName = "RM01InternetConnector_RM01InternetConnector"
+            
+            // Try multiple locations where the resource bundle might be
+            let candidates = [
+                // 1. Inside .app bundle's Resources directory
+                Bundle.main.resourceURL?.appendingPathComponent("\(bundleName).bundle"),
+                // 2. Next to the executable (SPM build location)
+                Bundle.main.bundleURL.appendingPathComponent("\(bundleName).bundle"),
+                // 3. In parent's Resources (for nested bundles)
+                Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("Resources/\(bundleName).bundle"),
+                // 4. Directly in Resources
+                Bundle.main.resourceURL,
+            ]
+            
+            for candidate in candidates {
+                if let url = candidate, let bundle = Bundle(url: url) {
+                    return bundle
+                }
             }
+            
+            // Fallback to main bundle (resources might be directly in Resources folder)
+            return Bundle.main
+        }()
+        
+        static var statusIcon: NSImage? {
+            // Create an NSImage and add all resolution variants as representations
+            // This allows macOS to automatically select the right resolution
+            let image = NSImage(size: NSSize(width: 18, height: 18))
+            
+            // Try to load from resource bundle first, then main bundle
+            let bundles = [resourceBundle, Bundle.main].compactMap { $0 }
+            
+            for bundle in bundles {
+                var foundAny = false
+                
+                // Load @1x (18x18)
+                if let url = bundle.url(forResource: "statusIcon", withExtension: "png"),
+                   let rep = NSImageRep(contentsOf: url) {
+                    rep.size = NSSize(width: 18, height: 18)
+                    image.addRepresentation(rep)
+                    foundAny = true
+                }
+                
+                // Load @2x (36x36)
+                if let url = bundle.url(forResource: "statusIcon@2x", withExtension: "png"),
+                   let rep = NSImageRep(contentsOf: url) {
+                    rep.size = NSSize(width: 18, height: 18) // Point size, not pixel size
+                    image.addRepresentation(rep)
+                    foundAny = true
+                }
+                
+                // Load @3x (54x54)
+                if let url = bundle.url(forResource: "statusIcon@3x", withExtension: "png"),
+                   let rep = NSImageRep(contentsOf: url) {
+                    rep.size = NSSize(width: 18, height: 18) // Point size, not pixel size
+                    image.addRepresentation(rep)
+                    foundAny = true
+                }
+                
+                if foundAny {
+                    return image
+                }
+            }
+            
             return nil
         }
         
         static var appIcon: NSImage? {
-            if let url = Bundle.module.url(forResource: "AppIcon", withExtension: "icns"),
+            if let bundle = resourceBundle,
+               let url = bundle.url(forResource: "AppIcon", withExtension: "icns"),
+               let image = NSImage(contentsOf: url) {
+                return image
+            }
+            if let url = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
                let image = NSImage(contentsOf: url) {
                 return image
             }
@@ -234,7 +300,12 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
         }
         
         static var bodyImage: NSImage? {
-            if let url = Bundle.module.url(forResource: "body", withExtension: "png"),
+            if let bundle = resourceBundle,
+               let url = bundle.url(forResource: "body", withExtension: "png"),
+               let image = NSImage(contentsOf: url) {
+                return image
+            }
+            if let url = Bundle.main.url(forResource: "body", withExtension: "png"),
                let image = NSImage(contentsOf: url) {
                 return image
             }
@@ -332,7 +403,8 @@ class AppState: ObservableObject {
         self.currentInterface = iface
         
         // Run privileged script on background thread
-        let script = ShellScripts.enableSharing(interface: iface.device)
+        // networksetup requires Hardware Port name, not device name (e.g., "AX88179A 5" not "en16")
+        let script = ShellScripts.enableSharing(interface: iface.hardwarePort, device: iface.device)
         let result = await Task.detached(priority: .userInitiated) {
             self.runPrivileged(script: script)
         }.value
@@ -356,7 +428,15 @@ class AppState: ObservableObject {
     }
     
     private func performDisconnect() async {
-        let script = ShellScripts.disableSharing()
+        // Save interface info before clearing it
+        guard let iface = currentInterface else {
+            self.statusKey = "status_idle"
+            self.connectionStatus = .idle
+            self.isBusy = false
+            return
+        }
+        
+        let script = ShellScripts.disableSharing(interface: iface.hardwarePort, device: iface.device)
         let result = await Task.detached(priority: .userInitiated) {
             self.runPrivileged(script: script)
         }.value
@@ -425,12 +505,10 @@ struct NetworkInterface: Equatable, Sendable {
 }
 
 enum InterfaceDetector {
-    /// Known keywords that identify AX88179A USB Ethernet adapters
+    /// Known keywords that identify AX88179A USB Ethernet adapters (RM-01 uses AX88179A chip)
+    /// Only match AX88179 to avoid matching other generic USB ethernet adapters
     private static let knownIdentifiers = [
-        "ax88179",
-        "usb 10/100/1000 lan",
-        "usb ethernet",
-        "usb gigabit ethernet"
+        "ax88179"
     ]
     
     /// Detects AX88179A USB Ethernet adapters
@@ -537,13 +615,19 @@ enum InterfaceDetector {
 
 enum ShellScripts {
     // Applies static IP/DNS and toggles Internet Sharing restart.
-    static func enableSharing(interface: String) -> String {
+    static func enableSharing(interface: String, device: String) -> String {
         """
         IFACE="\(interface)"
+        DEVICE="\(device)"
         IP="10.10.99.100"
         MASK="255.255.255.0"
         GW="10.10.99.100"
         DNS="8.8.8.8"
+
+        # Check if network service exists, if not create it
+        if ! /usr/sbin/networksetup -listallnetworkservices | grep -q "^$IFACE$"; then
+            /usr/sbin/networksetup -createnetworkservice "$IFACE" "$DEVICE"
+        fi
 
         /usr/sbin/networksetup -setmanual "$IFACE" "$IP" "$MASK" "$GW"
         /usr/sbin/networksetup -setdnsservers "$IFACE" "$DNS"
@@ -563,10 +647,25 @@ enum ShellScripts {
         """
     }
 
-    static func disableSharing() -> String {
+    static func disableSharing(interface: String, device: String) -> String {
         """
+        IFACE="\(interface)"
+        DEVICE="\(device)"
+        
+        # Stop Internet Sharing
         /bin/launchctl unload /System/Library/LaunchDaemons/com.apple.InternetSharing.plist 2>/dev/null || true
         /usr/bin/defaults write /Library/Preferences/SystemConfiguration/com.apple.nat NAT -dict Enabled -int 0
+        
+        # Restore DHCP for the interface
+        /usr/sbin/networksetup -setdhcp "$IFACE"
+        
+        # Clear DNS settings (empty = use DHCP)
+        /usr/sbin/networksetup -setdnsservers "$IFACE" empty
+        
+        # Refresh the interface to trigger DHCP request
+        /sbin/ifconfig "$DEVICE" down 2>/dev/null || true
+        sleep 1
+        /sbin/ifconfig "$DEVICE" up 2>/dev/null || true
         """
     }
 }
