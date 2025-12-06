@@ -625,10 +625,16 @@ enum ShellScripts {
         DNS="8.8.8.8"
         NAT_CONF="/tmp/rm01_nat.conf"
         
-        # Find Wi-Fi interface device name (internet source)
-        WIFI_DEVICE=$(/usr/sbin/networksetup -listallhardwareports | awk '/Wi-Fi/{getline; print $2}')
-        if [ -z "$WIFI_DEVICE" ]; then
-            WIFI_DEVICE="en0"
+        # Find the active internet interface (works with Wi-Fi, Ethernet, iPhone USB, etc.)
+        # Excludes VPN (utun) and link-local routes, finds the physical interface with a real gateway
+        INET_DEVICE=$(netstat -rn | grep "^default" | grep -v "utun" | grep -v "link#" | grep -v "$DEVICE" | head -1 | awk '{print $NF}')
+        if [ -z "$INET_DEVICE" ]; then
+            # Fallback to Wi-Fi
+            INET_DEVICE=$(/usr/sbin/networksetup -listallhardwareports | awk '/Wi-Fi/{getline; print $2}')
+        fi
+        if [ -z "$INET_DEVICE" ]; then
+            # Last resort fallback
+            INET_DEVICE="en0"
         fi
 
         # Check if network service exists, if not create it
@@ -643,8 +649,8 @@ enum ShellScripts {
         # Enable IP forwarding
         /usr/sbin/sysctl -w net.inet.ip.forwarding=1
 
-        # Create NAT rule file (share Wi-Fi to AX88179A)
-        echo "nat on $WIFI_DEVICE from $DEVICE:network to any -> ($WIFI_DEVICE)" > "$NAT_CONF"
+        # Create NAT rule file (share internet connection to AX88179A)
+        echo "nat on $INET_DEVICE from $DEVICE:network to any -> ($INET_DEVICE)" > "$NAT_CONF"
         
         # Load NAT rules using pfctl
         /sbin/pfctl -d 2>/dev/null || true

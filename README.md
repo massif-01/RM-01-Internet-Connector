@@ -48,9 +48,10 @@ cd "RM-01 Internet Connector"
 2. **Launch the app** and click the menu bar icon
 3. **Select "Connect"** to share your internet
 4. The app will automatically:
+   - Detect your active internet connection (Wi-Fi, Ethernet, iPhone USB, etc.)
    - Configure a static IP (10.10.99.100) on the adapter
    - Enable IP forwarding and NAT via pfctl
-   - RM-01 can now access the internet through your Mac's Wi-Fi
+   - RM-01 can now access the internet through your Mac
 5. **Select "Disconnect"** when finished (restores DHCP automatically)
 
 ### Keyboard Shortcuts
@@ -156,9 +157,10 @@ cd "RM-01 Internet Connector"
 2. **启动应用**并点击菜单栏图标
 3. **选择"连接"**开始共享网络
 4. 应用会自动完成以下配置：
+   - 自动检测当前活动的网络连接（Wi-Fi、有线网络、iPhone USB 等）
    - 在网卡上配置静态 IP (10.10.99.100)
    - 通过 pfctl 启用 IP 转发和 NAT
-   - RM-01 即可通过 Mac 的 Wi-Fi 访问互联网
+   - RM-01 即可通过 Mac 访问互联网
 5. 完成后**选择"断开连接"**（自动恢复 DHCP）
 
 ### 键盘快捷键
