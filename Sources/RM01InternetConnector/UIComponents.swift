@@ -12,7 +12,7 @@ enum Language: String, CaseIterable {
 @MainActor
 class LocalizationManager: ObservableObject {
     static let shared = LocalizationManager()
-    @Published var language: Language = .chinese
+    @Published var language: Language = .english
     
     private init() {}
     
@@ -72,17 +72,17 @@ struct LiquidGlassButton: View {
                 Text(title)
                     .fontWeight(.medium)
             }
-            .frame(maxWidth: .infinity)
+            .frame(width: 180)
             .padding(.vertical, 14)
             .background(
                 ZStack {
                     // Base gradient
                     if isDestructive {
-                        // Keep destructive style or make it red? Keeping it dark gray/reddish for disconnect
+                        // Soft coral/salmon red with better light feel
                         LinearGradient(
                             colors: [
-                                Color(red: 0.8, green: 0.2, blue: 0.2),
-                                Color(red: 0.6, green: 0.1, blue: 0.1)
+                                Color(red: 0.95, green: 0.45, blue: 0.45),
+                                Color(red: 0.85, green: 0.35, blue: 0.35)
                             ],
                             startPoint: .top,
                             endPoint: .bottom
@@ -156,7 +156,7 @@ struct LiquidGlassButton: View {
                         lineWidth: 1
                     )
             )
-            .shadow(color: isDestructive ? Color.red.opacity(0.3) : Color.green.opacity(0.3), radius: 5, x: 0, y: 3)
+            .shadow(color: isDestructive ? Color(red: 0.95, green: 0.45, blue: 0.45).opacity(0.4) : Color.green.opacity(0.3), radius: 5, x: 0, y: 3)
             .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
             .scaleEffect(isPressed ? 0.98 : 1.0)
             .opacity(isDisabled ? 0.6 : 1.0)
@@ -196,15 +196,6 @@ struct MainView: View {
         VStack(spacing: 0) {
             // Header with language toggle
             HStack {
-                Image(systemName: "network")
-                    .font(.title2)
-                    .foregroundColor(.accentColor)
-                
-                Text(loc.localized("windowTitle"))
-                    .font(.headline)
-                
-                Spacer()
-                
                 Button(action: {
                     loc.language = loc.language == .english ? .chinese : .english
                 }) {
@@ -217,10 +208,29 @@ struct MainView: View {
                         .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
+                
+                Spacer()
+                
+                Image(systemName: "network")
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+                
+                Text(loc.localized("windowTitle"))
+                    .font(.headline)
+                
+                Spacer()
+                
+                // Invisible placeholder to balance the layout
+                Text(loc.language.rawValue)
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .opacity(0)
             }
             .padding(.horizontal)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
             
             Divider()
                 .padding(.horizontal)
@@ -280,13 +290,13 @@ struct MainView: View {
             .padding(.horizontal, 30)
             
             Spacer()
-                .frame(height: 12)
+                .frame(height: 20)
             
             // Copyright footer
             Text("Copyright © 2025 massif-01, RMinte AI Technology Co., Ltd.")
                 .font(.system(size: 9))
                 .foregroundColor(.secondary.opacity(0.6))
-                .padding(.bottom, 8)
+                .padding(.bottom, 12)
         }
         .frame(width: 315, height: 440)
     }
@@ -296,7 +306,7 @@ struct MainView: View {
 
 struct RM01DeviceImage: View {
     @ObservedObject var appState: AppState
-    @State private var sweepOffset: CGFloat = -400
+    @State private var sweepOffset: CGFloat = -120
     @State private var glowOpacity: Double = 0.0
     @State private var isAnimating: Bool = false
     
@@ -336,36 +346,40 @@ struct RM01DeviceImage: View {
     }()
     
     var body: some View {
-        let imgWidth = max(imageCache.size.width, 1)
-        let imgHeight = max(imageCache.size.height, 1)
+        // Fixed display size: original image was 100x178
+        // High-res image (300x534) provides 3x clarity at this display size
+        let displayWidth: CGFloat = 100
+        let displayHeight: CGFloat = 178
         
         ZStack {
             Image(nsImage: imageCache)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: imgWidth * 4, height: imgHeight * 4)
+                .frame(width: displayWidth, height: displayHeight)
                 .shadow(color: glowColor, radius: 15)
                 .overlay(
-                    GeometryReader { geo in
-                        if appState.isConnected {
+                    ZStack {
+                        if appState.isConnected && isAnimating {
                             Rectangle()
                                 .fill(
                                     LinearGradient(
-                                        gradient: Gradient(colors: [.clear, .white.opacity(0.8), .clear]),
+                                        gradient: Gradient(colors: [.clear, .white.opacity(0.5), .white.opacity(0.95), .white.opacity(0.5), .clear]),
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )
                                 )
-                                .rotationEffect(.degrees(30))
-                                .frame(width: 120, height: geo.size.height * 4)
-                                .offset(x: sweepOffset, y: -geo.size.height)
-                                .mask(
-                                    Image(nsImage: imageCache)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                )
+                                .frame(width: 80, height: displayHeight * 3)
+                                .blur(radius: 15)
+                                .rotationEffect(.degrees(25))
+                                .offset(x: sweepOffset)
                         }
                     }
+                    .frame(width: displayWidth, height: displayHeight)
+                    .mask(
+                        Image(nsImage: imageCache)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    )
                 )
         }
         .onAppear {
@@ -377,23 +391,35 @@ struct RM01DeviceImage: View {
     }
     
     private var glowColor: Color {
-        appState.connectionStatus == .connected ? .clear : Color.red.opacity(glowOpacity)
+        if appState.connectionStatus == .connected {
+            return Color.green.opacity(glowOpacity)
+        } else {
+            return Color.red.opacity(glowOpacity)
+        }
     }
     
     private func updateAnimations(for status: ConnectionStatus) {
         // Stop existing animations first
         withAnimation(.linear(duration: 0)) {
-            sweepOffset = -400
+            sweepOffset = -120
             glowOpacity = 0
+            isAnimating = false
         }
         
         // Small delay to ensure reset completes
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             if status == .connected {
-                withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
-                    sweepOffset = 600
+                isAnimating = true
+                withAnimation(.easeInOut(duration: 1.4)) {
+                    sweepOffset = 120
                 }
-                glowOpacity = 0
+                // After sweep completes, start green glow
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                    isAnimating = false
+                    withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                        glowOpacity = 0.4
+                    }
+                }
             } else {
                 withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                     glowOpacity = 0.4
