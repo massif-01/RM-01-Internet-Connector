@@ -16,10 +16,13 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
     private var statusMenu: NSMenu!
     private var window: NSWindow?
     private let appState = AppState()
+    private let loc = LocalizationManager.shared
     
     // Menu items that need updating
     private var statusMenuItem: NSMenuItem!
     private var connectMenuItem: NSMenuItem!
+    private var openPanelMenuItem: NSMenuItem!
+    private var quitMenuItem: NSMenuItem!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Setup main menu for keyboard shortcuts
@@ -98,30 +101,30 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
         statusMenu = NSMenu()
         
         // Status display item (disabled, just for display)
-        statusMenuItem = NSMenuItem(title: "○ 未连接", action: nil, keyEquivalent: "")
+        statusMenuItem = NSMenuItem(title: loc.localized("menu_not_connected"), action: nil, keyEquivalent: "")
         statusMenuItem.isEnabled = false
         statusMenu.addItem(statusMenuItem)
         
         statusMenu.addItem(NSMenuItem.separator())
         
         // Connect/Disconnect item
-        connectMenuItem = NSMenuItem(title: "连接", action: #selector(toggleConnection), keyEquivalent: "")
+        connectMenuItem = NSMenuItem(title: loc.localized("menu_connect"), action: #selector(toggleConnection), keyEquivalent: "")
         connectMenuItem.target = self
         statusMenu.addItem(connectMenuItem)
         
         statusMenu.addItem(NSMenuItem.separator())
         
         // Open control panel
-        let openItem = NSMenuItem(title: "打开控制面板", action: #selector(openControlPanel), keyEquivalent: "o")
-        openItem.target = self
-        statusMenu.addItem(openItem)
+        openPanelMenuItem = NSMenuItem(title: loc.localized("menu_open_panel"), action: #selector(openControlPanel), keyEquivalent: "o")
+        openPanelMenuItem.target = self
+        statusMenu.addItem(openPanelMenuItem)
         
         statusMenu.addItem(NSMenuItem.separator())
         
         // Quit
-        let quitItem = NSMenuItem(title: "退出", action: #selector(quitApp), keyEquivalent: "q")
-        quitItem.target = self
-        statusMenu.addItem(quitItem)
+        quitMenuItem = NSMenuItem(title: loc.localized("menu_quit"), action: #selector(quitApp), keyEquivalent: "q")
+        quitMenuItem.target = self
+        statusMenu.addItem(quitMenuItem)
         
         statusItem.menu = statusMenu
         
@@ -131,38 +134,57 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
                 updateMenuItems()
             }
         }
+        
+        // Observe language changes
+        Task { @MainActor in
+            for await _ in loc.$language.values {
+                recreateMenuItems()
+            }
+        }
     }
     
     private func updateMenuItems() {
         switch appState.connectionStatus {
         case .connected:
-            statusMenuItem.title = "● 已连接"
+            let text = loc.localized("menu_connected")
+            statusMenuItem.title = text
             // Set green color using attributed string
             let greenDot = NSMutableAttributedString(string: "● ", attributes: [.foregroundColor: NSColor.systemGreen])
-            greenDot.append(NSAttributedString(string: "已连接"))
+            greenDot.append(NSAttributedString(string: text.dropFirst(2).trimmingCharacters(in: .whitespaces)))
             statusMenuItem.attributedTitle = greenDot
-            connectMenuItem.title = "断开连接"
+            connectMenuItem.title = loc.localized("menu_disconnect")
             connectMenuItem.isEnabled = true
         case .connecting:
-            statusMenuItem.title = "● 连接中..."
+            let text = loc.localized("menu_connecting")
+            statusMenuItem.title = text
             let yellowDot = NSMutableAttributedString(string: "● ", attributes: [.foregroundColor: NSColor.systemYellow])
-            yellowDot.append(NSAttributedString(string: "连接中..."))
+            yellowDot.append(NSAttributedString(string: text.dropFirst(2).trimmingCharacters(in: .whitespaces)))
             statusMenuItem.attributedTitle = yellowDot
-            connectMenuItem.title = "连接中..."
+            connectMenuItem.title = text
             connectMenuItem.isEnabled = false
         case .failed:
-            statusMenuItem.title = "● 连接失败"
+            let text = loc.localized("menu_failed")
+            statusMenuItem.title = text
             let redDot = NSMutableAttributedString(string: "● ", attributes: [.foregroundColor: NSColor.systemRed])
-            redDot.append(NSAttributedString(string: "连接失败"))
+            redDot.append(NSAttributedString(string: text.dropFirst(2).trimmingCharacters(in: .whitespaces)))
             statusMenuItem.attributedTitle = redDot
-            connectMenuItem.title = "重新连接"
+            connectMenuItem.title = loc.localized("menu_reconnect")
             connectMenuItem.isEnabled = true
         case .idle:
-            statusMenuItem.title = "○ 未连接"
+            statusMenuItem.title = loc.localized("menu_not_connected")
             statusMenuItem.attributedTitle = nil
-            connectMenuItem.title = "连接"
+            connectMenuItem.title = loc.localized("menu_connect")
             connectMenuItem.isEnabled = true
         }
+    }
+    
+    private func recreateMenuItems() {
+        // Update all menu item titles when language changes
+        openPanelMenuItem.title = loc.localized("menu_open_panel")
+        quitMenuItem.title = loc.localized("menu_quit")
+        
+        // Update status-dependent items
+        updateMenuItems()
     }
     
     @objc private func toggleConnection() {

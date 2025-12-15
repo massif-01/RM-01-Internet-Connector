@@ -35,6 +35,16 @@ class LocalizationManager: ObservableObject {
         "interface_none": "No Device",
         "interface_found": "Device Ready",
         "hint_insert": "Please connect RM-01",
+        // Menu bar items
+        "menu_not_connected": "○ Not Connected",
+        "menu_connected": "● Connected",
+        "menu_connecting": "● Connecting...",
+        "menu_failed": "● Connection Failed",
+        "menu_connect": "Connect",
+        "menu_disconnect": "Disconnect",
+        "menu_reconnect": "Reconnect",
+        "menu_open_panel": "Open Control Panel",
+        "menu_quit": "Quit",
     ]
     
     private let cn: [String: String] = [
@@ -49,6 +59,16 @@ class LocalizationManager: ObservableObject {
         "interface_none": "未检测到设备",
         "interface_found": "设备已就绪",
         "hint_insert": "请连接 RM-01",
+        // Menu bar items
+        "menu_not_connected": "○ 未连接",
+        "menu_connected": "● 已连接",
+        "menu_connecting": "● 连接中...",
+        "menu_failed": "● 连接失败",
+        "menu_connect": "连接",
+        "menu_disconnect": "断开连接",
+        "menu_reconnect": "重新连接",
+        "menu_open_panel": "打开控制面板",
+        "menu_quit": "退出",
     ]
 }
 
