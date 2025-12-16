@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Foundation
+import Darwin
 
 @main
 @MainActor
@@ -17,8 +18,10 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
     private var window: NSWindow?
     private let appState = AppState()
     private let loc = LocalizationManager.shared
+    private var speedMonitor: NetworkSpeedMonitor?
     
     // Menu items that need updating
+    private var speedMenuItem: NSMenuItem!
     private var statusMenuItem: NSMenuItem!
     private var connectMenuItem: NSMenuItem!
     private var openPanelMenuItem: NSMenuItem!
@@ -100,6 +103,17 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
         // Create native menu (like Shadowrocket)
         statusMenu = NSMenu()
         
+        // Speed display item (hidden when not connected)
+        speedMenuItem = NSMenuItem(title: "↑0B/s | ↓0B/s", action: #selector(doNothing), keyEquivalent: "")
+        speedMenuItem.target = self
+        speedMenuItem.isHidden = true
+        statusMenu.addItem(speedMenuItem)
+        
+        // Separator after speed (hidden when not connected)
+        let speedSeparator = NSMenuItem.separator()
+        speedSeparator.tag = 999  // Tag to identify this separator
+        statusMenu.addItem(speedSeparator)
+        
         // Status display item (disabled, just for display)
         statusMenuItem = NSMenuItem(title: loc.localized("menu_not_connected"), action: nil, keyEquivalent: "")
         statusMenuItem.isEnabled = false
@@ -132,6 +146,7 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
         Task { @MainActor in
             for await _ in appState.$connectionStatus.values {
                 updateMenuItems()
+                updateSpeedMonitoring()
             }
         }
         
@@ -140,6 +155,57 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
             for await _ in loc.$language.values {
                 recreateMenuItems()
             }
+        }
+    }
+    
+    private func updateSpeedMonitoring() {
+        // Stop existing monitor
+        speedMonitor?.stop()
+        speedMonitor = nil
+        
+        // Start monitoring only when connected and interface is available
+        if appState.connectionStatus == .connected, let interface = appState.currentInterface {
+            speedMonitor = NetworkSpeedMonitor(interfaceName: interface.device) { [weak self] upload, download in
+                Task { @MainActor in
+                    self?.updateStatusBarWithSpeed(upload: upload, download: download)
+                }
+            }
+            speedMonitor?.start()
+        } else {
+            // Clear speed display when not connected
+            updateStatusBarWithSpeed(upload: 0, download: 0)
+        }
+    }
+    
+    private func updateStatusBarWithSpeed(upload: Double, download: Double) {
+        // Find the speed separator by tag
+        let speedSeparator = statusMenu.item(withTag: 999)
+        
+        if appState.connectionStatus == .connected {
+            // Swap: Mac's TX (upload) = RM-01's download, Mac's RX (download) = RM-01's upload
+            let rm01UploadStr = formatSpeed(download)    // RM-01 upload = Mac RX
+            let rm01DownloadStr = formatSpeed(upload)    // RM-01 download = Mac TX
+            speedMenuItem.title = "↑\(rm01UploadStr)   |   ↓\(rm01DownloadStr)"
+            speedMenuItem.isHidden = false
+            speedSeparator?.isHidden = false
+        } else {
+            speedMenuItem.isHidden = true
+            speedSeparator?.isHidden = true
+        }
+        
+        // Force menu to update while open
+        statusMenu.update()
+    }
+    
+    private func formatSpeed(_ bytesPerSecond: Double) -> String {
+        if bytesPerSecond < 1024 {
+            return String(format: "%.0fB/s", bytesPerSecond)
+        } else if bytesPerSecond < 1024 * 1024 {
+            return String(format: "%.1fKB/s", bytesPerSecond / 1024)
+        } else if bytesPerSecond < 1024 * 1024 * 1024 {
+            return String(format: "%.1fMB/s", bytesPerSecond / 1024 / 1024)
+        } else {
+            return String(format: "%.2fGB/s", bytesPerSecond / 1024 / 1024 / 1024)
         }
     }
     
@@ -201,6 +267,10 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
     
     @objc private func quitApp() {
         NSApp.terminate(nil)
+    }
+    
+    @objc private func doNothing() {
+        // Empty action to make menu item appear enabled (black text)
     }
 
     private func setupWindow() {
@@ -707,6 +777,107 @@ enum ShellScripts {
         sleep 1
         /sbin/ifconfig "$DEVICE" up 2>/dev/null || true
         """
+    }
+}
+
+// MARK: - Network Speed Monitor
+
+@MainActor
+class NetworkSpeedMonitor {
+    private let interfaceName: String
+    private var timer: Timer?
+    private var lastRxBytes: UInt64 = 0
+    private var lastTxBytes: UInt64 = 0
+    private var lastUpdateTime: Date?
+    private let callback: (Double, Double) -> Void
+    
+    init(interfaceName: String, callback: @escaping (Double, Double) -> Void) {
+        self.interfaceName = interfaceName
+        self.callback = callback
+    }
+    
+    func start() {
+        // Initial sample
+        if let (rx, tx) = getInterfaceBytes() {
+            lastRxBytes = rx
+            lastTxBytes = tx
+            lastUpdateTime = Date()
+        }
+        
+        // Update every 1 second
+        timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.update()
+            }
+        }
+        timer?.tolerance = 0.1
+        // Add to common mode so it fires even when menu is open (tracking mode)
+        if let timer = timer {
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+    
+    func stop() {
+        timer?.invalidate()
+        timer = nil
+    }
+    
+    private func update() {
+        guard let (currentRx, currentTx) = getInterfaceBytes(),
+              let lastTime = lastUpdateTime else {
+            return
+        }
+        
+        let now = Date()
+        let timeDiff = now.timeIntervalSince(lastTime)
+        
+        guard timeDiff > 0 else { return }
+        
+        // Calculate bytes per second
+        let rxDiff = Double(currentRx > lastRxBytes ? currentRx - lastRxBytes : 0)
+        let txDiff = Double(currentTx > lastTxBytes ? currentTx - lastTxBytes : 0)
+        
+        let downloadSpeed = rxDiff / timeDiff
+        let uploadSpeed = txDiff / timeDiff
+        
+        // Update for next iteration
+        lastRxBytes = currentRx
+        lastTxBytes = currentTx
+        lastUpdateTime = now
+        
+        // Callback with speeds
+        callback(uploadSpeed, downloadSpeed)
+    }
+    
+    private func getInterfaceBytes() -> (rx: UInt64, tx: UInt64)? {
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        
+        guard getifaddrs(&ifaddr) == 0 else {
+            return nil
+        }
+        
+        defer { freeifaddrs(ifaddr) }
+        
+        var ptr = ifaddr
+        while ptr != nil {
+            defer { ptr = ptr?.pointee.ifa_next }
+            
+            guard let interface = ptr else { continue }
+            let name = String(cString: interface.pointee.ifa_name)
+            
+            if name == interfaceName {
+                // Check if this is AF_LINK (link layer address)
+                if interface.pointee.ifa_addr.pointee.sa_family == UInt8(AF_LINK) {
+                    // Cast to if_data structure
+                    let data = interface.pointee.ifa_data.assumingMemoryBound(to: if_data.self)
+                    let rxBytes = UInt64(data.pointee.ifi_ibytes)
+                    let txBytes = UInt64(data.pointee.ifi_obytes)
+                    return (rxBytes, txBytes)
+                }
+            }
+        }
+        
+        return nil
     }
 }
 

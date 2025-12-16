@@ -17,8 +17,9 @@ RM-01 Internet Connector is a native macOS menu bar application that shares your
 
 - 🌐 **One-Click Connection** - Share internet with a single click
 - 📍 **Menu Bar Integration** - Native macOS menu bar experience
+- 📊 **Real-time Speed Monitor** - Live RM-01 upload/download speed in menu dropdown (updates every second, even when menu is open)
 - 🎨 **Liquid Glass UI** - Modern, beautiful interface with smooth animations
-- 🌍 **Bilingual Support** - Full Chinese and English localization
+- 🌍 **Bilingual Support** - Full Chinese and English localization (menu bar items switch dynamically)
 - ⚡ **Auto Detection** - Automatically detects AX88179A USB Ethernet adapters
 - 🔄 **Visual Feedback** - Real-time connection status with animations
 
@@ -52,7 +53,8 @@ cd "RM-01 Internet Connector"
    - Configure a static IP (10.10.99.100) on the adapter
    - Enable IP forwarding and NAT via pfctl
    - RM-01 can now access the internet through your Mac
-5. **Select "Disconnect"** when finished (restores DHCP automatically)
+5. **Monitor real-time speed** - Open the menu dropdown to see live upload/download speeds (e.g., `↑125KB/s   |   ↓2.3MB/s`)
+6. **Select "Disconnect"** when finished (restores DHCP automatically)
 
 ### Keyboard Shortcuts
 
@@ -84,6 +86,7 @@ Sources/
 - **Build System**: Swift Package Manager
 - **Network Configuration**: Uses `networksetup`, `pfctl`, and `sysctl` via privileged shell script
 - **NAT Method**: Direct pfctl NAT rules (does not modify System Settings → Sharing)
+- **Speed Monitoring**: Uses `getifaddrs()` system API to read interface statistics (updates every second in RunLoop common mode)
 - **Supported Adapters**: AX88179A USB Ethernet (RM-01 built-in chip)
 
 ### Troubleshooting
@@ -126,8 +129,9 @@ RM-01 互联网连接助手是一款原生 macOS 菜单栏应用，通过 AX8817
 
 - 🌐 **一键连接** - 单击即可共享网络
 - 📍 **菜单栏集成** - 原生 macOS 菜单栏体验
+- 📊 **实时网速监控** - 菜单下拉显示 RM-01 实时上传/下载速度（每秒更新，菜单打开时也会刷新）
 - 🎨 **液态玻璃界面** - 现代美观的界面设计，流畅动画
-- 🌍 **双语支持** - 完整的中英文本地化
+- 🌍 **双语支持** - 完整的中英文本地化（菜单栏项目动态切换）
 - ⚡ **自动检测** - 自动检测 AX88179A USB 网卡
 - 🔄 **视觉反馈** - 实时连接状态动画
 
@@ -161,7 +165,8 @@ cd "RM-01 Internet Connector"
    - 在网卡上配置静态 IP (10.10.99.100)
    - 通过 pfctl 启用 IP 转发和 NAT
    - RM-01 即可通过 Mac 访问互联网
-5. 完成后**选择"断开连接"**（自动恢复 DHCP）
+5. **实时监控网速** - 打开菜单下拉可查看实时上传/下载速度（例如 `↑125KB/s   |   ↓2.3MB/s`）
+6. 完成后**选择"断开连接"**（自动恢复 DHCP）
 
 ### 键盘快捷键
 
@@ -193,6 +198,7 @@ Sources/
 - **构建系统**：Swift Package Manager
 - **网络配置**：通过特权脚本使用 `networksetup`、`pfctl` 和 `sysctl`
 - **NAT 方式**：直接配置 pfctl NAT 规则（不修改系统设置中的共享配置）
+- **网速监控**：使用 `getifaddrs()` 系统 API 读取接口统计（RunLoop common mode 下每秒更新）
 - **支持的网卡**：AX88179A USB 网卡（RM-01 内置芯片）
 
 ### 常见问题
