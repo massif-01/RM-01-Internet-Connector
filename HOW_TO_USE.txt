@@ -1,0 +1,84 @@
+================================================================================
+                      RM-01 Internet Connector
+                    How to Install and Use / 安装和使用说明
+================================================================================
+
+ENGLISH
+================================================================================
+
+INSTALLATION
+------------
+1. Drag "RM-01 Internet Connector.app" to the Applications folder
+2. If you see "App is damaged" error, double-click "fix-app-damaged.sh"
+   - Enter your password when prompted
+   - This removes the quarantine flag set by macOS Gatekeeper
+
+FIRST LAUNCH
+------------
+1. Open Applications folder
+2. Find and double-click "RM-01 Internet Connector"
+3. If macOS prevents opening, go to System Settings > Privacy & Security
+   and click "Open Anyway"
+
+USAGE
+-----
+1. The app runs in the menu bar (top-right corner of your screen)
+2. Click the menu bar icon to see available network interfaces
+3. Select an interface to share its internet connection
+4. Your remarkable tablet's IP address will be shown
+5. Use "Connect" to share internet connection with your reMarkable tablet
+6. Use "Disconnect" when you're done
+
+TROUBLESHOOTING
+---------------
+- If the app doesn't start, make sure you've run "fix-app-damaged.sh"
+- The app requires macOS 13.0 or later
+- Network sharing requires administrator privileges
+
+UNINSTALL
+---------
+Simply drag "RM-01 Internet Connector.app" from Applications to Trash
+
+
+================================================================================
+
+中文
+================================================================================
+
+安装说明
+--------
+1. 将 "RM-01 Internet Connector.app" 拖拽到应用程序文件夹
+2. 如果看到"应用已损坏"错误，双击 "fix-app-damaged.sh" 脚本
+   - 在提示时输入您的密码
+   - 这会移除 macOS Gatekeeper 设置的隔离标志
+
+首次启动
+--------
+1. 打开应用程序文件夹
+2. 找到并双击 "RM-01 Internet Connector"
+3. 如果 macOS 阻止打开，前往系统设置 > 隐私与安全性
+   点击"仍要打开"
+
+使用方法
+--------
+1. 应用在菜单栏运行（屏幕右上角）
+2. 点击菜单栏图标查看可用的网络接口
+3. 选择一个接口来共享其互联网连接
+4. 将显示您的 remarkable 平板的 IP 地址
+5. 点击"Connect"与 reMarkable 平板共享网络连接
+6. 使用完毕后点击"Disconnect"
+
+问题排查
+--------
+- 如果应用无法启动，请确保已运行 "fix-app-damaged.sh"
+- 应用需要 macOS 13.0 或更高版本
+- 网络共享需要管理员权限
+
+卸载
+----
+只需将"RM-01 Internet Connector.app"从应用程序文件夹拖到废纸篓
+
+
+================================================================================
+                              END / 结束
+================================================================================

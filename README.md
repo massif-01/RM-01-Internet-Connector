@@ -33,8 +33,13 @@ RM-01 Internet Connector is a native macOS menu bar application that shares your
 
 #### From DMG
 1. Download the latest `.dmg` from Releases
-2. Open the DMG and drag the app to Applications
-3. Launch "RM-01 Internet Connector"
+2. Open the DMG file - you'll see an installer window
+3. Drag "RM-01 Internet Connector.app" to the Applications folder
+4. **If macOS says the app is damaged**, double-click the `fix-app-damaged.sh` script in the DMG
+   - Enter your password when prompted
+   - This removes the quarantine flag set by macOS Gatekeeper
+5. Launch "RM-01 Internet Connector" from Applications
+6. For detailed instructions, see the `HOW_TO_USE.txt` file in the DMG
 
 #### Build from Source
 ```bash
@@ -42,6 +47,11 @@ git clone <repository-url>
 cd "RM-01 Internet Connector"
 ./build.sh
 ```
+
+The build script will create:
+- A complete `.app` bundle in `dist/`
+- A `.dmg` installer with drag-to-install interface
+- Helper scripts and documentation included in the DMG
 
 ### Usage
 
@@ -145,8 +155,13 @@ RM-01 互联网连接助手是一款原生 macOS 菜单栏应用，通过 AX8817
 
 #### 从 DMG 安装
 1. 从 Releases 下载最新的 `.dmg` 文件
-2. 打开 DMG 并将应用拖到"应用程序"
-3. 启动 "RM-01 Internet Connector"
+2. 打开 DMG 文件 - 您会看到安装器窗口
+3. 将 "RM-01 Internet Connector.app" 拖到"应用程序"文件夹
+4. **如果 macOS 提示"应用已损坏"**，双击 DMG 中的 `fix-app-damaged.sh` 脚本
+   - 在提示时输入密码
+   - 这会移除 macOS Gatekeeper 设置的隔离标志
+5. 从应用程序文件夹启动 "RM-01 Internet Connector"
+6. 详细说明请查看 DMG 中的 `HOW_TO_USE.txt` 文件
 
 #### 从源码构建
 ```bash
@@ -154,6 +169,11 @@ git clone <repository-url>
 cd "RM-01 Internet Connector"
 ./build.sh
 ```
+
+构建脚本会创建：
+- 完整的 `.app` 应用包在 `dist/` 目录
+- 带拖拽安装界面的 `.dmg` 安装器
+- DMG 中包含辅助脚本和使用说明
 
 ### 使用方法
 
