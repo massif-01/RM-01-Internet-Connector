@@ -8,7 +8,7 @@ set -e
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="RM-01 Internet Connector"
 BUNDLE_ID="com.rm01.internetconnector"
-VERSION="1.0.0"
+VERSION="1.0.6"
 
 echo "🔨 Building RM-01 Internet Connector..."
 
@@ -16,19 +16,49 @@ echo "🔨 Building RM-01 Internet Connector..."
 rm -rf "$PROJECT_DIR/dist"
 mkdir -p "$PROJECT_DIR/dist"
 
-# Build the Swift package
+# Build the Swift package for both architectures
 cd "$PROJECT_DIR"
-swift build -c release
 
-# Get the built executable path
-EXECUTABLE=$(swift build -c release --show-bin-path)/RM01InternetConnector
+echo "Building for arm64 (Apple Silicon)..."
+swift build -c release --arch arm64
 
-if [ ! -f "$EXECUTABLE" ]; then
-    echo "❌ Build failed: executable not found"
+echo "Building for x86_64 (Intel)..."
+swift build -c release --arch x86_64
+
+# Get the built executable paths
+ARM64_EXECUTABLE=$(swift build -c release --arch arm64 --show-bin-path)/RM01InternetConnector
+X86_64_EXECUTABLE=$(swift build -c release --arch x86_64 --show-bin-path)/RM01InternetConnector
+
+if [ ! -f "$ARM64_EXECUTABLE" ]; then
+    echo "❌ arm64 build failed: executable not found"
     exit 1
 fi
 
-echo "✅ Build successful"
+if [ ! -f "$X86_64_EXECUTABLE" ]; then
+    echo "❌ x86_64 build failed: executable not found"
+    exit 1
+fi
+
+echo "✅ Both architectures built successfully"
+
+# Create universal binary using lipo
+UNIVERSAL_EXECUTABLE="$PROJECT_DIR/.build/universal/RM01InternetConnector"
+mkdir -p "$PROJECT_DIR/.build/universal"
+
+echo "Creating universal binary..."
+lipo -create "$ARM64_EXECUTABLE" "$X86_64_EXECUTABLE" -output "$UNIVERSAL_EXECUTABLE"
+
+if [ ! -f "$UNIVERSAL_EXECUTABLE" ]; then
+    echo "❌ Failed to create universal binary"
+    exit 1
+fi
+
+# Verify the universal binary
+echo "Verifying universal binary:"
+lipo -info "$UNIVERSAL_EXECUTABLE"
+
+EXECUTABLE="$UNIVERSAL_EXECUTABLE"
+echo "✅ Universal binary created successfully"
 
 # Create app bundle structure
 APP_BUNDLE="$PROJECT_DIR/dist/$APP_NAME.app"
@@ -39,11 +69,15 @@ mkdir -p "$APP_BUNDLE/Contents/Resources"
 cp "$EXECUTABLE" "$APP_BUNDLE/Contents/MacOS/RM01InternetConnector"
 
 # Copy the resource bundle (required for Bundle.module to work)
-BUILT_BUNDLE="$PROJECT_DIR/.build/release/RM01InternetConnector_RM01InternetConnector.bundle"
-if [ -d "$BUILT_BUNDLE" ]; then
-    cp -R "$BUILT_BUNDLE" "$APP_BUNDLE/Contents/Resources/"
-    echo "✅ Resource bundle copied"
-fi
+# Try both architecture-specific paths and the universal path
+for ARCH_PATH in "$PROJECT_DIR/.build/arm64-apple-macosx/release" "$PROJECT_DIR/.build/x86_64-apple-macosx/release" "$PROJECT_DIR/.build/release"; do
+    BUILT_BUNDLE="$ARCH_PATH/RM01InternetConnector_RM01InternetConnector.bundle"
+    if [ -d "$BUILT_BUNDLE" ]; then
+        cp -R "$BUILT_BUNDLE" "$APP_BUNDLE/Contents/Resources/"
+        echo "✅ Resource bundle copied from $ARCH_PATH"
+        break
+    fi
+done
 
 # Also copy all resources directly to Resources root for fallback access
 cp "$PROJECT_DIR/Sources/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
