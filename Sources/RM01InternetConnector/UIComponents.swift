@@ -2,6 +2,21 @@ import SwiftUI
 import AppKit
 import Combine
 
+// MARK: - Utilities
+
+/// Format network speed from bytes per second to human-readable string
+func formatSpeed(_ bytesPerSecond: Double) -> String {
+    if bytesPerSecond < 1024 {
+        return String(format: "%.0fB/s", bytesPerSecond)
+    } else if bytesPerSecond < 1024 * 1024 {
+        return String(format: "%.1fKB/s", bytesPerSecond / 1024)
+    } else if bytesPerSecond < 1024 * 1024 * 1024 {
+        return String(format: "%.1fMB/s", bytesPerSecond / 1024 / 1024)
+    } else {
+        return String(format: "%.2fGB/s", bytesPerSecond / 1024 / 1024 / 1024)
+    }
+}
+
 // MARK: - Localization
 
 enum Language: String, CaseIterable {
@@ -70,6 +85,45 @@ class LocalizationManager: ObservableObject {
         "menu_open_panel": "打开控制面板",
         "menu_quit": "退出",
     ]
+}
+
+// MARK: - Network Speed Display
+
+struct NetworkSpeedDisplay: View {
+    @ObservedObject var appState: AppState
+    
+    var body: some View {
+        if appState.connectionStatus == .connected {
+            HStack(spacing: 8) {
+                // Upload speed
+                HStack(spacing: 4) {
+                    Text("↑")
+                        .font(.system(size: 14, weight: .medium))
+                    Text(formatSpeed(appState.uploadSpeed))
+                        .font(.system(size: 14, weight: .medium, design: .monospaced))
+                }
+                
+                Text("|")
+                    .foregroundColor(.secondary.opacity(0.5))
+                
+                // Download speed
+                HStack(spacing: 4) {
+                    Text("↓")
+                        .font(.system(size: 14, weight: .medium))
+                    Text(formatSpeed(appState.downloadSpeed))
+                        .font(.system(size: 14, weight: .medium, design: .monospaced))
+                }
+            }
+            .foregroundColor(.primary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.secondary.opacity(0.1))
+            )
+            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        }
+    }
 }
 
 // MARK: - Liquid Glass Button
@@ -293,6 +347,13 @@ struct MainView: View {
             Spacer()
                 .frame(height: 20)
             
+            // Network speed display (only when connected)
+            NetworkSpeedDisplay(appState: appState)
+            
+            // Gap 3: Small spacing before button
+            Spacer()
+                .frame(height: 12)
+            
             // Liquid Glass Action Button
             LiquidGlassButton(
                 title: appState.isConnected ? loc.localized("disconnect") : loc.localized("connect"),
@@ -310,7 +371,7 @@ struct MainView: View {
             .padding(.horizontal, 30)
             
             Spacer()
-                .frame(height: 20)
+                .frame(height: 16)
             
             // Copyright footer
             Text("Copyright © 2025 massif-01, RMinte AI Technology Co., Ltd.")
