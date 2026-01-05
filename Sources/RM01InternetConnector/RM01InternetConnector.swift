@@ -150,6 +150,19 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
             }
         }
         
+        // Observe speed changes
+        Task { @MainActor in
+            for await _ in appState.$uploadSpeed.values {
+                updateStatusBar()
+            }
+        }
+        
+        Task { @MainActor in
+            for await _ in appState.$downloadSpeed.values {
+                updateStatusBar()
+            }
+        }
+        
         // Observe language changes
         Task { @MainActor in
             for await _ in loc.$language.values {
@@ -165,27 +178,30 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
         
         // Start monitoring only when connected and interface is available
         if appState.connectionStatus == .connected, let interface = appState.currentInterface {
-            speedMonitor = NetworkSpeedMonitor(interfaceName: interface.device) { [weak self] upload, download in
+            speedMonitor = NetworkSpeedMonitor(interfaceName: interface.device) { [weak self] macUpload, macDownload in
                 Task { @MainActor in
-                    self?.updateStatusBarWithSpeed(upload: upload, download: download)
+                    guard let self = self else { return }
+                    // Swap: Mac's TX (upload) = RM-01's download, Mac's RX (download) = RM-01's upload
+                    self.appState.uploadSpeed = macDownload    // RM-01 upload = Mac RX
+                    self.appState.downloadSpeed = macUpload    // RM-01 download = Mac TX
                 }
             }
             speedMonitor?.start()
         } else {
             // Clear speed display when not connected
-            updateStatusBarWithSpeed(upload: 0, download: 0)
+            appState.uploadSpeed = 0
+            appState.downloadSpeed = 0
         }
     }
     
-    private func updateStatusBarWithSpeed(upload: Double, download: Double) {
+    private func updateStatusBar() {
         // Find the speed separator by tag
         let speedSeparator = statusMenu.item(withTag: 999)
         
         if appState.connectionStatus == .connected {
-            // Swap: Mac's TX (upload) = RM-01's download, Mac's RX (download) = RM-01's upload
-            let rm01UploadStr = formatSpeed(download)    // RM-01 upload = Mac RX
-            let rm01DownloadStr = formatSpeed(upload)    // RM-01 download = Mac TX
-            speedMenuItem.title = "↑\(rm01UploadStr)   |   ↓\(rm01DownloadStr)"
+            let uploadStr = formatSpeed(appState.uploadSpeed)
+            let downloadStr = formatSpeed(appState.downloadSpeed)
+            speedMenuItem.title = "↑\(uploadStr)   |   ↓\(downloadStr)"
             speedMenuItem.isHidden = false
             speedSeparator?.isHidden = false
         } else {
@@ -197,17 +213,6 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
         statusMenu.update()
     }
     
-    private func formatSpeed(_ bytesPerSecond: Double) -> String {
-        if bytesPerSecond < 1024 {
-            return String(format: "%.0fB/s", bytesPerSecond)
-        } else if bytesPerSecond < 1024 * 1024 {
-            return String(format: "%.1fKB/s", bytesPerSecond / 1024)
-        } else if bytesPerSecond < 1024 * 1024 * 1024 {
-            return String(format: "%.1fMB/s", bytesPerSecond / 1024 / 1024)
-        } else {
-            return String(format: "%.2fGB/s", bytesPerSecond / 1024 / 1024 / 1024)
-        }
-    }
     
     private func updateMenuItems() {
         switch appState.connectionStatus {
@@ -283,6 +288,7 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
         )
         window.center()
         window.title = "RM-01 Internet Connector"
+        window.titleVisibility = .hidden  // Hide title text in title bar
         window.isReleasedWhenClosed = false
         window.delegate = self
         
@@ -440,6 +446,10 @@ class AppState: ObservableObject {
     @Published var statusKey: String = "status_idle"
     @Published var isBusy: Bool = false
     @Published var lastError: Error?
+    
+    // Network speed (RM-01 perspective: upload = Mac RX, download = Mac TX)
+    @Published var uploadSpeed: Double = 0      // RM-01 upload (Mac RX)
+    @Published var downloadSpeed: Double = 0    // RM-01 download (Mac TX)
     
     var isConnected: Bool {
         connectionStatus == .connected
