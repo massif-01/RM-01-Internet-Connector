@@ -7,3 +7,31 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 /dist
+
+# Temporary screenshot files
+assets/__*.png
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Linux version
+linux_version/__pycache__/
+linux_version/*.pyc
+linux_version/dist/
+linux_version/build/
+
+# Windows version
+win_version/bin/
+win_version/obj/
+win_version/publish/
+
+# macOS version
+mac_version/dist/
+mac_version/.build/
