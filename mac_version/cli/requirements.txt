@@ -1,0 +1,7 @@
+# RM-01 Internet Connector - macOS CLI Dependencies
+
+# Colored terminal output
+colorama>=0.4.6
+
+# Note: macOS has Python 3 built-in, no additional packages required
+# All network operations use built-in subprocess and system commands
