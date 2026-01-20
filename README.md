@@ -62,11 +62,63 @@ cd mac_version
 
 #### Windows
 
+**GUI Mode:**
 ```powershell
 cd win_version
 .\build.ps1
 # App will be created in win_version\publish\
 ```
+
+**CLI Mode** (for automation and remote control):
+
+*Option 1: Python Script (Developers)*
+```cmd
+cd win_version\cli
+pip install -r requirements.txt
+
+# Check connection status
+python cli.py status
+
+# Detect RM-01 adapter
+python cli.py detect
+
+# Enable internet sharing (requires Administrator)
+python cli.py connect
+
+# Disable internet sharing
+python cli.py disconnect
+
+# Language support
+python cli.py --lang zh status    # Chinese
+python cli.py --lang en status    # English
+```
+
+*Option 2: Standalone Executable (End Users)*
+```cmd
+# Build the executable
+cd win_version\cli
+build_exe.bat
+
+# Use the executable (requires Administrator)
+dist\rm01-cli.exe status
+dist\rm01-cli.exe connect
+dist\rm01-cli.exe disconnect
+
+# Language support
+dist\rm01-cli.exe --lang zh status
+```
+
+**Add to PATH** (optional):
+```cmd
+# Copy to system directory for global access
+copy win_version\cli\dist\rm01-cli.exe C:\Windows\System32\
+
+# Now you can use from anywhere
+rm01-cli.exe status
+rm01-cli.exe connect
+```
+
+**Note**: All network configuration commands require Administrator privileges. Right-click Command Prompt → "Run as Administrator"
 
 #### Linux
 
@@ -154,17 +206,17 @@ RM-01 互联网连接助手是一款跨平台应用，通过 AX88179A USB 网卡
 | 平台 | 图形界面 | 命令行 | 状态 |
 |------|---------|--------|------|
 | macOS | ✅ | - | 稳定 |
-| Windows | ✅ | - | 稳定 |
+| Windows | ✅ | ✅ | 稳定 |
 | Linux | ✅ | ✅ | 稳定 |
 
 ### 功能特点
 
 - 🌐 **一键连接** - 单击即可共享网络
-- 📊 **实时网速监控** - 实时显示上传/下载速度
+- 📊 **实时网速监控** - 实时显示上传/下载速度（图形界面）
 - 🎨 **统一界面** - 所有平台保持一致的精美设计
 - 🌍 **双语支持** - 完整的中英文本地化
 - ⚡ **自动检测** - 自动检测 AX88179A USB 网卡
-- 🖥️ **命令行支持** (Linux) - 支持 SSH 远程控制
+- 🖥️ **命令行支持** (Linux & Windows) - 支持自动化和 SSH 远程控制
 
 ### 项目结构
 
@@ -174,8 +226,9 @@ RM-01 Internet Connector/
 │   ├── Sources/
 │   ├── Package.swift
 │   └── build.sh
-├── win_version/           # Windows 版本 (C#/WPF)
-│   ├── RM01InternetConnector.Win/
+├── win_version/           # Windows 版本 (C#/WPF + Python CLI)
+│   ├── RM01InternetConnector.Win/  # 图形界面应用
+│   ├── cli/                         # 命令行工具
 │   └── build.ps1
 ├── linux_version/         # Linux 版本 (Python/PyQt6)
 │   ├── main.py            # 图形界面入口
@@ -197,11 +250,63 @@ cd mac_version
 
 #### Windows
 
+**图形界面模式：**
 ```powershell
 cd win_version
 .\build.ps1
 # 应用将创建在 win_version\publish\
 ```
+
+**命令行模式** (适合自动化和远程控制)：
+
+*方式1：Python 脚本（开发者）*
+```cmd
+cd win_version\cli
+pip install -r requirements.txt
+
+# 查看连接状态
+python cli.py status
+
+# 检测 RM-01 适配器
+python cli.py detect
+
+# 启用网络共享（需要管理员权限）
+python cli.py connect
+
+# 禁用网络共享
+python cli.py disconnect
+
+# 语言支持
+python cli.py --lang zh status    # 中文
+python cli.py --lang en status    # 英文
+```
+
+*方式2：独立可执行文件（最终用户）*
+```cmd
+# 构建可执行文件
+cd win_version\cli
+build_exe.bat
+
+# 使用可执行文件（需要管理员权限）
+dist\rm01-cli.exe status
+dist\rm01-cli.exe connect
+dist\rm01-cli.exe disconnect
+
+# 语言支持
+dist\rm01-cli.exe --lang zh status
+```
+
+**添加到系统路径**（可选）：
+```cmd
+# 复制到系统目录以便全局访问
+copy win_version\cli\dist\rm01-cli.exe C:\Windows\System32\
+
+# 现在可以在任何地方使用
+rm01-cli.exe status
+rm01-cli.exe connect
+```
+
+**注意**：所有网络配置命令需要管理员权限。右键点击命令提示符 → "以管理员身份运行"
 
 #### Linux
 
