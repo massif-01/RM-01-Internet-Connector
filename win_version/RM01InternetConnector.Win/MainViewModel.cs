@@ -42,6 +42,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string LanguageLabel => _loc.LanguageLabel;
     public bool IsBusy => _state.IsBusy;
     public bool IsConnected => _state.IsConnected;
+    public string UploadSpeedText => FormatSpeed(_state.UploadSpeed);
+    public string DownloadSpeedText => FormatSpeed(_state.DownloadSpeed);
 
     private async Task ToggleConnectAsync()
     {
@@ -65,10 +67,24 @@ public sealed class MainViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WindowTitle)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsBusy)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsConnected)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UploadSpeedText)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DownloadSpeedText)));
         if (ConnectCommand is RelayCommand cmd)
         {
             cmd.RaiseCanExecuteChanged();
         }
+    }
+
+    private static string FormatSpeed(double bytesPerSecond)
+    {
+        if (bytesPerSecond < 1024)
+            return $"{bytesPerSecond:F0}B/s";
+        else if (bytesPerSecond < 1024 * 1024)
+            return $"{bytesPerSecond / 1024:F1}KB/s";
+        else if (bytesPerSecond < 1024 * 1024 * 1024)
+            return $"{bytesPerSecond / 1024 / 1024:F1}MB/s";
+        else
+            return $"{bytesPerSecond / 1024 / 1024 / 1024:F2}GB/s";
     }
 }
 

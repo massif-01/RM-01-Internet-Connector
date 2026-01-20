@@ -18,17 +18,17 @@ RM-01 Internet Connector is a cross-platform application that shares your comput
 | Platform | GUI | CLI | Status |
 |----------|-----|-----|--------|
 | macOS | ✅ | - | Stable |
-| Windows | ✅ | - | Stable |
+| Windows | ✅ | ✅ | Stable |
 | Linux | ✅ | ✅ | Stable |
 
 ### Features
 
 - 🌐 **One-Click Connection** - Share internet with a single click
-- 📊 **Real-time Speed Monitor** - Live upload/download speed display
+- 📊 **Real-time Speed Monitor** - Live upload/download speed display (GUI)
 - 🎨 **Consistent UI** - Same beautiful design across all platforms
 - 🌍 **Bilingual Support** - Full Chinese and English localization
 - ⚡ **Auto Detection** - Automatically detects AX88179A USB Ethernet adapters
-- 🖥️ **CLI Support** (Linux) - Command-line control for SSH remote access
+- 🖥️ **CLI Support** (Linux & Windows) - Command-line control for automation and SSH remote access
 
 ### Project Structure
 
@@ -38,8 +38,9 @@ RM-01 Internet Connector/
 │   ├── Sources/
 │   ├── Package.swift
 │   └── build.sh
-├── win_version/           # Windows version (C#/WPF)
-│   ├── RM01InternetConnector.Win/
+├── win_version/           # Windows version (C#/WPF + Python CLI)
+│   ├── RM01InternetConnector.Win/  # GUI application
+│   ├── cli/                         # CLI tool
 │   └── build.ps1
 ├── linux_version/         # Linux version (Python/PyQt6)
 │   ├── main.py            # GUI entry

@@ -15,6 +15,8 @@ public sealed class TrayController : IDisposable
     private readonly Action _quit;
 
     private readonly NotifyIcon _notifyIcon;
+    private readonly ToolStripMenuItem _speedItem;
+    private readonly ToolStripSeparator _speedSeparator;
     private readonly ToolStripMenuItem _statusItem;
     private readonly ToolStripMenuItem _connectItem;
 
@@ -33,6 +35,15 @@ public sealed class TrayController : IDisposable
         };
 
         var menu = new ContextMenuStrip();
+        
+        // Speed display (hidden when not connected)
+        _speedItem = new ToolStripMenuItem 
+        { 
+            Enabled = false,  // Only for display
+            Visible = false   // Hidden by default
+        };
+        _speedSeparator = new ToolStripSeparator { Visible = false };
+        
         _statusItem = new ToolStripMenuItem { Enabled = false };
         _connectItem = new ToolStripMenuItem();
 
@@ -48,6 +59,9 @@ public sealed class TrayController : IDisposable
         };
         quitItem.Click += (_, _) => _quit();
 
+        // Add menu items in order
+        menu.Items.Add(_speedItem);
+        menu.Items.Add(_speedSeparator);
         menu.Items.Add(_statusItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_connectItem);
@@ -72,7 +86,23 @@ public sealed class TrayController : IDisposable
 
     private void UpdateMenu()
     {
+        // Update speed display
+        if (_state.Status == ConnectionStatus.Connected)
+        {
+            _speedItem.Text = $"↑ {FormatSpeed(_state.UploadSpeed)}   |   ↓ {FormatSpeed(_state.DownloadSpeed)}";
+            _speedItem.Visible = true;
+            _speedSeparator.Visible = true;
+        }
+        else
+        {
+            _speedItem.Visible = false;
+            _speedSeparator.Visible = false;
+        }
+        
+        // Update status with colored indicator
         _statusItem.Text = StatusTitle();
+        
+        // Update connect/disconnect button
         _connectItem.Text = _state.IsConnected ? _loc.Translate("tray_disconnect") : _loc.Translate("tray_connect");
         _connectItem.Enabled = !_state.IsBusy;
         _connectItem.Click -= OnConnectClicked;
@@ -83,10 +113,10 @@ public sealed class TrayController : IDisposable
     {
         return _state.Status switch
         {
-            ConnectionStatus.Connected => _loc.Translate("tray_status_connected"),
-            ConnectionStatus.Connecting => _loc.Translate("tray_status_connecting"),
-            ConnectionStatus.Failed => _loc.Translate("tray_status_failed"),
-            _ => _loc.Translate("tray_status_idle")
+            ConnectionStatus.Connected => $"● {_loc.Translate("tray_status_connected")}",
+            ConnectionStatus.Connecting => $"● {_loc.Translate("tray_status_connecting")}",
+            ConnectionStatus.Failed => $"● {_loc.Translate("tray_status_failed")}",
+            _ => $"○ {_loc.Translate("tray_status_idle")}"
         };
     }
 
@@ -118,6 +148,18 @@ public sealed class TrayController : IDisposable
             // ignore and fallback
         }
         return SystemIcons.Application;
+    }
+
+    private static string FormatSpeed(double bytesPerSecond)
+    {
+        if (bytesPerSecond < 1024)
+            return $"{bytesPerSecond:F0}B/s";
+        else if (bytesPerSecond < 1024 * 1024)
+            return $"{bytesPerSecond / 1024:F1}KB/s";
+        else if (bytesPerSecond < 1024 * 1024 * 1024)
+            return $"{bytesPerSecond / 1024 / 1024:F1}MB/s";
+        else
+            return $"{bytesPerSecond / 1024 / 1024 / 1024:F2}GB/s";
     }
 
     public void Dispose()

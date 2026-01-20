@@ -22,6 +22,9 @@ public sealed class AppState : INotifyPropertyChanged
     private string _statusKey = "status_idle";
     private bool _isBusy;
     private Exception? _lastError;
+    private double _uploadSpeed;
+    private double _downloadSpeed;
+    private NetworkSpeedMonitor? _speedMonitor;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -56,6 +59,18 @@ public sealed class AppState : INotifyPropertyChanged
     }
 
     public bool IsConnected => Status == ConnectionStatus.Connected;
+
+    public double UploadSpeed
+    {
+        get => _uploadSpeed;
+        private set => SetProperty(ref _uploadSpeed, value);
+    }
+
+    public double DownloadSpeed
+    {
+        get => _downloadSpeed;
+        private set => SetProperty(ref _downloadSpeed, value);
+    }
 
     public AppState(IWindowsNetworkService networkService)
     {
@@ -93,6 +108,9 @@ public sealed class AppState : INotifyPropertyChanged
 
             Status = ConnectionStatus.Connected;
             StatusKey = "status_connected";
+            
+            // Start speed monitoring
+            StartSpeedMonitoring();
         }
         catch (OperationCanceledException)
         {
@@ -121,6 +139,9 @@ public sealed class AppState : INotifyPropertyChanged
 
         try
         {
+            // Stop speed monitoring
+            StopSpeedMonitoring();
+            
             await _networkService.DisableSharingAsync(CurrentInterface, CancellationToken.None);
             Status = ConnectionStatus.Idle;
             StatusKey = "status_idle";
@@ -148,6 +169,35 @@ public sealed class AppState : INotifyPropertyChanged
         if (Equals(field, value)) return;
         field = value;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    private void StartSpeedMonitoring()
+    {
+        if (CurrentInterface == null || Status != ConnectionStatus.Connected)
+            return;
+
+        StopSpeedMonitoring(); // Stop any existing monitor
+
+        _speedMonitor = new NetworkSpeedMonitor(CurrentInterface.Name, OnSpeedUpdated);
+        _speedMonitor.Start();
+    }
+
+    private void StopSpeedMonitoring()
+    {
+        if (_speedMonitor != null)
+        {
+            _speedMonitor.Dispose();
+            _speedMonitor = null;
+        }
+
+        UploadSpeed = 0;
+        DownloadSpeed = 0;
+    }
+
+    private void OnSpeedUpdated(double uploadSpeed, double downloadSpeed)
+    {
+        UploadSpeed = uploadSpeed;
+        DownloadSpeed = downloadSpeed;
     }
 }
 

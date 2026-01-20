@@ -63,10 +63,10 @@ public sealed class LocalizationManager : INotifyPropertyChanged
         { "tray_quit", "Quit" },
         { "tray_connect", "Connect" },
         { "tray_disconnect", "Disconnect" },
-        { "tray_status_connected", "● Connected" },
-        { "tray_status_connecting", "● Connecting..." },
-        { "tray_status_failed", "● Failed" },
-        { "tray_status_idle", "○ Idle" },
+        { "tray_status_connected", "Connected" },
+        { "tray_status_connecting", "Connecting..." },
+        { "tray_status_failed", "Failed" },
+        { "tray_status_idle", "Idle" },
     };
 
     private static readonly Dictionary<string, string> Cn = new(StringComparer.OrdinalIgnoreCase)
@@ -86,10 +86,10 @@ public sealed class LocalizationManager : INotifyPropertyChanged
         { "tray_quit", "退出" },
         { "tray_connect", "连接" },
         { "tray_disconnect", "断开连接" },
-        { "tray_status_connected", "● 已连接" },
-        { "tray_status_connecting", "● 连接中..." },
-        { "tray_status_failed", "● 连接失败" },
-        { "tray_status_idle", "○ 未连接" },
+        { "tray_status_connected", "已连接" },
+        { "tray_status_connecting", "连接中..." },
+        { "tray_status_failed", "连接失败" },
+        { "tray_status_idle", "未连接" },
     };
 }
 
