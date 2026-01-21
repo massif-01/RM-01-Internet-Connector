@@ -47,9 +47,9 @@ class LiquidGlassButton(QPushButton):
         self._scale = 1.0
         
         # Setup
-        self.setFixedSize(180, 52)
+        self.setFixedSize(160, 46)
         self.setCursor(Qt.PointingHandCursor)
-        self.setFont(QFont("", 14, QFont.DemiBold))
+        self.setFont(QFont("", 12, QFont.DemiBold))
         
         # Animation for press effect
         self._scale_anim = QPropertyAnimation(self, b"scale")
@@ -214,17 +214,17 @@ class NetworkSpeedDisplay(QWidget):
         self._download_speed = 0.0
         self._visible = False
         
-        self.setFixedSize(180, 36)
+        self.setFixedSize(160, 32)
         self._setup_ui()
     
     def _setup_ui(self):
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 8, 12, 8)
-        layout.setSpacing(6)
+        layout.setContentsMargins(10, 6, 10, 6)
+        layout.setSpacing(4)
         
         # Upload
         self.upload_label = QLabel("↑0B/s")
-        self.upload_label.setFont(QFont("Monospace", 11, QFont.Normal))
+        self.upload_label.setFont(QFont("Monospace", 10, QFont.Normal))
         self.upload_label.setStyleSheet("color: #333;")
         
         # Separator
@@ -233,7 +233,7 @@ class NetworkSpeedDisplay(QWidget):
         
         # Download
         self.download_label = QLabel("↓0B/s")
-        self.download_label.setFont(QFont("Monospace", 11, QFont.Normal))
+        self.download_label.setFont(QFont("Monospace", 10, QFont.Normal))
         self.download_label.setStyleSheet("color: #333;")
         
         layout.addWidget(self.upload_label)
@@ -287,17 +287,17 @@ class RM01DeviceImage(QWidget):
         super().__init__(parent)
         self._is_connected = False
         self._glow_opacity = 0.0
-        self._sweep_offset = -120.0
+        self._sweep_offset = -100.0
         self._is_animating_sweep = False
         
-        # Fixed size matching macOS version
-        self.setFixedSize(120, 200)
+        # Fixed size with room for glow effect
+        self.setFixedSize(130, 190)
         
         # Load image
         self._pixmap = QPixmap(get_asset_path("body.png"))
         if self._pixmap.isNull():
             # Create placeholder if image not found
-            self._pixmap = QPixmap(100, 178)
+            self._pixmap = QPixmap(90, 160)
             self._pixmap.fill(QColor(200, 200, 200, 100))
         
         # Glow animation - use a timer for pulsing effect
@@ -309,9 +309,9 @@ class RM01DeviceImage(QWidget):
         
         # Sweep animation
         self._sweep_anim = QPropertyAnimation(self, b"sweep_offset")
-        self._sweep_anim.setDuration(1400)
-        self._sweep_anim.setStartValue(-120.0)
-        self._sweep_anim.setEndValue(120.0)
+        self._sweep_anim.setDuration(1200)
+        self._sweep_anim.setStartValue(-100.0)
+        self._sweep_anim.setEndValue(100.0)
         self._sweep_anim.setEasingCurve(QEasingCurve.InOutQuad)
         self._sweep_anim.finished.connect(self._on_sweep_finished)
         
@@ -350,7 +350,7 @@ class RM01DeviceImage(QWidget):
         if connected:
             # Start sweep animation, then green glow
             self._is_animating_sweep = True
-            self._sweep_offset = -120.0
+            self._sweep_offset = -100.0
             self._sweep_anim.start()
         else:
             # Red glow
@@ -388,9 +388,9 @@ class RM01DeviceImage(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setRenderHint(QPainter.SmoothPixmapTransform)
         
-        # Calculate centered position
-        img_width = 100
-        img_height = 178
+        # Calculate centered position (smaller image to leave room for glow)
+        img_width = 90
+        img_height = 160
         x = (self.width() - img_width) // 2
         y = (self.height() - img_height) // 2
         
@@ -402,7 +402,7 @@ class RM01DeviceImage(QWidget):
             # Simple glow using multiple passes
             for i in range(3):
                 painter.setOpacity(self._glow_opacity * (0.3 - i * 0.1))
-                offset = (i + 1) * 5
+                offset = (i + 1) * 4
                 painter.drawPixmap(x - offset, y - offset, 
                                   img_width + offset * 2, img_height + offset * 2,
                                   self._pixmap)
@@ -416,7 +416,7 @@ class RM01DeviceImage(QWidget):
         if self._is_animating_sweep and self._is_connected:
             # Create sweep gradient
             sweep_x = x + img_width // 2 + self._sweep_offset
-            gradient = QLinearGradient(sweep_x - 40, 0, sweep_x + 40, 0)
+            gradient = QLinearGradient(sweep_x - 30, 0, sweep_x + 30, 0)
             gradient.setColorAt(0, QColor(255, 255, 255, 0))
             gradient.setColorAt(0.3, QColor(255, 255, 255, 128))
             gradient.setColorAt(0.5, QColor(255, 255, 255, 240))
@@ -425,4 +425,4 @@ class RM01DeviceImage(QWidget):
             
             # Clip to image bounds and draw
             painter.setClipRect(x, y, img_width, img_height)
-            painter.fillRect(int(sweep_x - 40), y, 80, img_height, gradient)
+            painter.fillRect(int(sweep_x - 30), y, 60, img_height, gradient)

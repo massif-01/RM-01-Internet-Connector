@@ -74,16 +74,15 @@ class MainWindow(QMainWindow):
         divider.setFrameShape(QFrame.HLine)
         divider.setStyleSheet("background-color: rgba(0,0,0,0.07); max-height: 1px;")
         layout.addWidget(divider)
-        layout.setContentsMargins(12, 0, 12, 0)
         
         # Top spacer
-        layout.addSpacing(15)
+        layout.addSpacing(10)
         
         # Status section
         layout.addWidget(self._create_status_section())
         
         # Gap
-        layout.addSpacing(20)
+        layout.addSpacing(15)
         
         # Device image
         self.device_image = RM01DeviceImage()
@@ -96,7 +95,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(image_container)
         
         # Gap
-        layout.addSpacing(20)
+        layout.addSpacing(15)
         
         # Speed display
         self.speed_display = NetworkSpeedDisplay()
@@ -110,7 +109,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(speed_container)
         
         # Gap
-        layout.addSpacing(12)
+        layout.addSpacing(10)
         
         # Connect button
         self.connect_button = LiquidGlassButton(loc("connect"))
@@ -123,13 +122,10 @@ class MainWindow(QMainWindow):
         layout.addWidget(button_container)
         
         # Gap
-        layout.addSpacing(16)
+        layout.addSpacing(12)
         
         # Footer
         layout.addWidget(self._create_footer())
-        
-        # Reset margins for main layout
-        layout.setContentsMargins(0, 0, 0, 0)
     
     def _create_header(self) -> QWidget:
         """Create header with language toggle and title"""
@@ -147,7 +143,7 @@ class MainWindow(QMainWindow):
                 border: 1px solid rgba(0, 0, 0, 0.1);
                 border-radius: 6px;
                 font-weight: bold;
-                font-size: 11px;
+                font-size: 10px;
                 color: #1B1B1B;
             }
             QPushButton:hover {
@@ -173,7 +169,7 @@ class MainWindow(QMainWindow):
         layout.addSpacing(8)
         
         self.title_label = QLabel(loc("window_title"))
-        self.title_label.setFont(QFont("", 14, QFont.DemiBold))
+        self.title_label.setFont(QFont("", 12, QFont.DemiBold))
         layout.addWidget(self.title_label)
         
         layout.addStretch()
@@ -195,18 +191,18 @@ class MainWindow(QMainWindow):
         
         # Status text
         self.status_label = QLabel(loc("status_idle"))
-        self.status_label.setFont(QFont("", 20, QFont.Normal))
+        self.status_label.setFont(QFont("", 16, QFont.Normal))
         self.status_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.status_label)
         
         # Device info
         self.device_label = QLabel(loc("hint_insert"))
-        self.device_label.setFont(QFont("", 12))
+        self.device_label.setFont(QFont("", 10))
         self.device_label.setStyleSheet("color: #666;")
         self.device_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.device_label)
         
-        section.setFixedHeight(50)
+        section.setFixedHeight(45)
         return section
     
     def _create_footer(self) -> QWidget:
@@ -216,7 +212,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 12)
         
         copyright_label = QLabel("Copyright © 2025 massif-01, RMinte AI Technology Co., Ltd.")
-        copyright_label.setFont(QFont("", 9))
+        copyright_label.setFont(QFont("", 8))
         copyright_label.setStyleSheet("color: rgba(0, 0, 0, 0.4);")
         copyright_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(copyright_label)
