@@ -9,9 +9,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="RM-01 Internet Connector"
 APP_ID="com.rminte.rm01-internet-connector"
-VERSION="1.0.0"
+VERSION="1.1.1"
 
 echo "🔨 Building RM-01 Internet Connector AppImage..."
+echo "   Version: $VERSION"
+echo ""
 
 # Check dependencies
 check_command() {
@@ -34,7 +36,7 @@ rm -rf "$BUILD_DIR" "$DIST_DIR"
 mkdir -p "$BUILD_DIR" "$DIST_DIR" "$APPDIR"
 
 echo "📦 Installing dependencies..."
-pip3 install --user PyQt6 pyinstaller
+pip3 install --user PyQt5 pyinstaller
 
 echo "🔧 Building with PyInstaller..."
 cd "$SCRIPT_DIR"
@@ -57,7 +59,7 @@ a = Analysis(
     datas=[
         (os.path.join(parent_dir, 'assets'), 'assets'),
     ],
-    hiddenimports=['PyQt6.sip'],
+    hiddenimports=['PyQt5.sip', 'PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
