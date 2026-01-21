@@ -26,7 +26,8 @@ class LocalizationManager(QObject):
         return cls._instance
     
     def __init__(self):
-        if hasattr(self, '_initialized'):
+        # Check using __dict__ to avoid QObject attribute access before init
+        if '_initialized' in self.__dict__:
             return
         super().__init__()
         self._initialized = True
