@@ -42,22 +42,24 @@ echo "🔧 Building with PyInstaller..."
 cd "$SCRIPT_DIR"
 
 # Create PyInstaller spec for better control
-cat > "$BUILD_DIR/rm01.spec" << 'EOF'
+# Use absolute paths directly
+cat > "$BUILD_DIR/rm01.spec" << EOF
 # -*- mode: python ; coding: utf-8 -*-
 
 import sys
 import os
 
 block_cipher = None
-script_dir = os.path.dirname(os.path.abspath(SPECPATH))
-parent_dir = os.path.dirname(script_dir)
+
+# Use absolute paths
+SRC_DIR = '$SCRIPT_DIR'
 
 a = Analysis(
-    [os.path.join(parent_dir, 'main.py')],
-    pathex=[parent_dir],
+    [os.path.join(SRC_DIR, 'main.py')],
+    pathex=[SRC_DIR],
     binaries=[],
     datas=[
-        (os.path.join(parent_dir, 'assets'), 'assets'),
+        (os.path.join(SRC_DIR, 'assets'), 'assets'),
     ],
     hiddenimports=['PyQt5.sip', 'PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets'],
     hookspath=[],
@@ -92,7 +94,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=os.path.join(parent_dir, 'assets', 'icon.png') if os.path.exists(os.path.join(parent_dir, 'assets', 'icon.png')) else None,
+    icon=os.path.join(SRC_DIR, 'assets', 'icon.png') if os.path.exists(os.path.join(SRC_DIR, 'assets', 'icon.png')) else None,
 )
 EOF
 
