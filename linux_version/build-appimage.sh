@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # RM-01 Internet Connector - AppImage Build Script
-# Builds a standalone AppImage for Linux distribution
+# Builds a fully self-contained AppImage with all dependencies
 #
 
 set -e
@@ -35,84 +35,37 @@ APPDIR="$BUILD_DIR/AppDir"
 rm -rf "$BUILD_DIR" "$DIST_DIR"
 mkdir -p "$BUILD_DIR" "$DIST_DIR" "$APPDIR"
 
-echo "📦 Installing dependencies..."
+echo "📦 Installing Python dependencies..."
 pip3 install --user PyQt5 pyinstaller
 
-echo "🔧 Building with PyInstaller..."
+echo "🔧 Building with PyInstaller (onedir mode for AppImage)..."
 cd "$SCRIPT_DIR"
 
-# Create PyInstaller spec for better control
-# Use absolute paths directly
-cat > "$BUILD_DIR/rm01.spec" << EOF
-# -*- mode: python ; coding: utf-8 -*-
-
-import sys
-import os
-
-block_cipher = None
-
-# Use absolute paths
-SRC_DIR = '$SCRIPT_DIR'
-
-a = Analysis(
-    [os.path.join(SRC_DIR, 'main.py')],
-    pathex=[SRC_DIR],
-    binaries=[],
-    datas=[
-        (os.path.join(SRC_DIR, 'assets'), 'assets'),
-    ],
-    hiddenimports=['PyQt5.sip', 'PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets'],
-    hookspath=[],
-    hooksconfig={},
-    runtime_hooks=[],
-    excludes=[],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
-    noarchive=False,
-)
-
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
-    name='rm01-internet-connector',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=False,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-    icon=os.path.join(SRC_DIR, 'assets', 'icon.png') if os.path.exists(os.path.join(SRC_DIR, 'assets', 'icon.png')) else None,
-)
-EOF
-
-pyinstaller --clean --noconfirm "$BUILD_DIR/rm01.spec"
+# Use onedir mode so we can bundle everything properly
+pyinstaller --clean --noconfirm \
+    --name rm01-internet-connector \
+    --onedir \
+    --windowed \
+    --add-data "assets:assets" \
+    --hidden-import PyQt5.sip \
+    --hidden-import PyQt5.QtCore \
+    --hidden-import PyQt5.QtGui \
+    --hidden-import PyQt5.QtWidgets \
+    --distpath "$BUILD_DIR/pyinstaller_dist" \
+    --workpath "$BUILD_DIR/pyinstaller_work" \
+    --specpath "$BUILD_DIR" \
+    main.py
 
 echo "📁 Creating AppDir structure..."
 
 # Create AppDir structure
 mkdir -p "$APPDIR/usr/bin"
+mkdir -p "$APPDIR/usr/lib"
 mkdir -p "$APPDIR/usr/share/applications"
 mkdir -p "$APPDIR/usr/share/icons/hicolor/256x256/apps"
-mkdir -p "$APPDIR/usr/share/icons/hicolor/128x128/apps"
-mkdir -p "$APPDIR/usr/share/icons/hicolor/64x64/apps"
-mkdir -p "$APPDIR/usr/share/icons/hicolor/32x32/apps"
 
-# Copy executable
-cp "$SCRIPT_DIR/dist/rm01-internet-connector" "$APPDIR/usr/bin/"
-chmod +x "$APPDIR/usr/bin/rm01-internet-connector"
+# Copy the entire PyInstaller output directory
+cp -r "$BUILD_DIR/pyinstaller_dist/rm01-internet-connector/"* "$APPDIR/usr/bin/"
 
 # Copy icon
 if [ -f "$SCRIPT_DIR/assets/icon.png" ]; then
@@ -137,34 +90,70 @@ EOF
 # Copy to AppDir root
 cp "$APPDIR/usr/share/applications/rm01-internet-connector.desktop" "$APPDIR/"
 
-# Create AppRun script
-cat > "$APPDIR/AppRun" << 'EOF'
+# Create AppRun script that sets up the environment properly
+cat > "$APPDIR/AppRun" << 'APPRUN_EOF'
 #!/bin/bash
 SELF=$(readlink -f "$0")
 HERE=${SELF%/*}
-export PATH="${HERE}/usr/bin/:${PATH}"
-export LD_LIBRARY_PATH="${HERE}/usr/lib/:${LD_LIBRARY_PATH}"
+
+# Set up library paths
+export LD_LIBRARY_PATH="${HERE}/usr/bin:${HERE}/usr/lib:${LD_LIBRARY_PATH}"
+
+# Set Qt plugin path
+export QT_PLUGIN_PATH="${HERE}/usr/bin/PyQt5/Qt5/plugins:${QT_PLUGIN_PATH}"
+export QT_QPA_PLATFORM_PLUGIN_PATH="${HERE}/usr/bin/PyQt5/Qt5/plugins/platforms"
+
+# Set XDG paths
+export XDG_DATA_DIRS="${HERE}/usr/share:${XDG_DATA_DIRS}"
+
+# Run the application
 exec "${HERE}/usr/bin/rm01-internet-connector" "$@"
-EOF
+APPRUN_EOF
 chmod +x "$APPDIR/AppRun"
+
+# Bundle additional system libraries that might be missing
+echo "📚 Bundling additional libraries..."
+
+# Find and copy libxcb-xinerama if available on the system
+for lib in libxcb-xinerama.so.0 libxcb-cursor.so.0 libxcb-util.so.1; do
+    LIB_PATH=$(ldconfig -p | grep "$lib" | head -1 | awk '{print $NF}')
+    if [ -n "$LIB_PATH" ] && [ -f "$LIB_PATH" ]; then
+        echo "   Bundling $lib"
+        cp "$LIB_PATH" "$APPDIR/usr/bin/" 2>/dev/null || true
+    fi
+done
 
 echo "📦 Creating AppImage..."
 
 # Download appimagetool if not available
-APPIMAGETOOL="$BUILD_DIR/appimagetool-x86_64.AppImage"
+APPIMAGETOOL="$BUILD_DIR/appimagetool"
 if [ ! -f "$APPIMAGETOOL" ]; then
     echo "   Downloading appimagetool..."
-    wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O "$APPIMAGETOOL"
-    chmod +x "$APPIMAGETOOL"
+    wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O "${APPIMAGETOOL}.AppImage"
+    chmod +x "${APPIMAGETOOL}.AppImage"
+    
+    # Extract it to avoid FUSE requirement
+    cd "$BUILD_DIR"
+    ./"appimagetool.AppImage" --appimage-extract > /dev/null 2>&1
+    mv squashfs-root appimagetool_extracted
+    APPIMAGETOOL="$BUILD_DIR/appimagetool_extracted/AppRun"
+    cd "$SCRIPT_DIR"
 fi
 
 # Create AppImage
-ARCH=x86_64 "$APPIMAGETOOL" "$APPDIR" "$DIST_DIR/RM-01_Internet_Connector-$VERSION-x86_64.AppImage"
+OUTPUT_APPIMAGE="$DIST_DIR/RM-01_Internet_Connector-$VERSION-x86_64.AppImage"
+ARCH=x86_64 "$APPIMAGETOOL" "$APPDIR" "$OUTPUT_APPIMAGE"
+
+# Make it executable
+chmod +x "$OUTPUT_APPIMAGE"
 
 echo ""
 echo "✅ Build complete!"
-echo "   AppImage: $DIST_DIR/RM-01_Internet_Connector-$VERSION-x86_64.AppImage"
+echo "   AppImage: $OUTPUT_APPIMAGE"
 echo ""
 echo "To run the AppImage:"
-echo "   chmod +x '$DIST_DIR/RM-01_Internet_Connector-$VERSION-x86_64.AppImage'"
-echo "   '$DIST_DIR/RM-01_Internet_Connector-$VERSION-x86_64.AppImage'"
+echo "   $OUTPUT_APPIMAGE"
+echo ""
+echo "Or copy it anywhere and run:"
+echo "   chmod +x RM-01_Internet_Connector-$VERSION-x86_64.AppImage"
+echo "   ./RM-01_Internet_Connector-$VERSION-x86_64.AppImage"
