@@ -5,7 +5,7 @@ Application state management for RM-01 Internet Connector
 import time
 from enum import Enum
 from typing import Optional
-from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread
+from PyQt5.QtCore import QObject, pyqtSignal, QTimer, QThread
 
 import subprocess
 from network_service import NetworkService, NetworkInterface, request_password

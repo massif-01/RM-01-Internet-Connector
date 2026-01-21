@@ -5,12 +5,12 @@ Matches the macOS SwiftUI version's layout and design
 
 import sys
 import os
-from PyQt6.QtWidgets import (
+from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QFrame, QSizePolicy, QSpacerItem
+    QPushButton, QFrame, QSizePolicy, QSpacerItem, QMessageBox
 )
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QIcon, QFont, QPixmap
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QIcon, QFont, QPixmap
 
 from app_state import AppState, ConnectionStatus
 from localization import loc, Language
@@ -40,9 +40,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(loc("window_title"))
         self.setFixedSize(315, 440)
         self.setWindowFlags(
-            Qt.WindowType.Window |
-            Qt.WindowType.WindowCloseButtonHint |
-            Qt.WindowType.WindowMinimizeButtonHint
+            Qt.Window |
+            Qt.WindowCloseButtonHint |
+            Qt.WindowMinimizeButtonHint
         )
         
         # Set window icon
@@ -71,7 +71,7 @@ class MainWindow(QMainWindow):
         
         # Divider
         divider = QFrame()
-        divider.setFrameShape(QFrame.Shape.HLine)
+        divider.setFrameShape(QFrame.HLine)
         divider.setStyleSheet("background-color: rgba(0,0,0,0.07); max-height: 1px;")
         layout.addWidget(divider)
         layout.setContentsMargins(12, 0, 12, 0)
@@ -140,7 +140,7 @@ class MainWindow(QMainWindow):
         # Language button
         self.lang_button = QPushButton(loc.language.value)
         self.lang_button.setFixedSize(36, 24)
-        self.lang_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.lang_button.setCursor(Qt.PointingHandCursor)
         self.lang_button.setStyleSheet("""
             QPushButton {
                 background-color: rgba(27, 186, 63, 0.1);
@@ -163,8 +163,8 @@ class MainWindow(QMainWindow):
         icon_label = QLabel()
         icon_path = get_asset_path("icon.png")
         if os.path.exists(icon_path):
-            pixmap = QPixmap(icon_path).scaled(22, 22, Qt.AspectRatioMode.KeepAspectRatio, 
-                                                Qt.TransformationMode.SmoothTransformation)
+            pixmap = QPixmap(icon_path).scaled(22, 22, Qt.KeepAspectRatio, 
+                                                Qt.SmoothTransformation)
             icon_label.setPixmap(pixmap)
         else:
             icon_label.setText("🌐")
@@ -173,7 +173,7 @@ class MainWindow(QMainWindow):
         layout.addSpacing(8)
         
         self.title_label = QLabel(loc("window_title"))
-        self.title_label.setFont(QFont("", 14, QFont.Weight.DemiBold))
+        self.title_label.setFont(QFont("", 14, QFont.DemiBold))
         layout.addWidget(self.title_label)
         
         layout.addStretch()
@@ -191,19 +191,19 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(section)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.setAlignment(Qt.AlignCenter)
         
         # Status text
         self.status_label = QLabel(loc("status_idle"))
-        self.status_label.setFont(QFont("", 20, QFont.Weight.Medium))
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setFont(QFont("", 20, QFont.Normal))
+        self.status_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.status_label)
         
         # Device info
         self.device_label = QLabel(loc("hint_insert"))
         self.device_label.setFont(QFont("", 12))
         self.device_label.setStyleSheet("color: #666;")
-        self.device_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.device_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.device_label)
         
         section.setFixedHeight(50)
@@ -218,7 +218,7 @@ class MainWindow(QMainWindow):
         copyright_label = QLabel("Copyright © 2025 massif-01, RMinte AI Technology Co., Ltd.")
         copyright_label.setFont(QFont("", 9))
         copyright_label.setStyleSheet("color: rgba(0, 0, 0, 0.4);")
-        copyright_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        copyright_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(copyright_label)
         
         return footer
@@ -308,8 +308,6 @@ class MainWindow(QMainWindow):
     
     def _on_error_occurred(self, error: str):
         """Handle error from app state"""
-        from PyQt6.QtWidgets import QMessageBox
-        
         # Translate common error keys
         error_messages = {
             "error_no_interface": loc("interface_none"),

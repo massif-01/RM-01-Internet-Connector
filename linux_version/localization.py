@@ -5,7 +5,7 @@ Supports English and Chinese
 
 from enum import Enum
 from typing import Dict
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal
 
 
 class Language(Enum):

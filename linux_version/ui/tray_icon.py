@@ -5,9 +5,9 @@ Provides quick access menu similar to macOS menu bar
 
 import os
 from typing import Optional
-from PyQt6.QtWidgets import QSystemTrayIcon, QMenu, QApplication
-from PyQt6.QtGui import QIcon, QAction
-from PyQt6.QtCore import pyqtSignal, QObject
+from PyQt5.QtWidgets import QSystemTrayIcon, QMenu, QApplication, QAction
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import pyqtSignal, QObject
 
 from app_state import AppState, ConnectionStatus
 from localization import loc, Language
@@ -181,12 +181,12 @@ class TrayIcon(QObject):
         self._quit_action.setText(loc("menu_quit"))
         self._update_menu(self.app_state.connection_status)
     
-    def _on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason):
+    def _on_tray_activated(self, reason):
         """Handle tray icon activation"""
-        if reason == QSystemTrayIcon.ActivationReason.Trigger:
+        if reason == QSystemTrayIcon.Trigger:
             # Single click - open panel
             self.open_panel_requested.emit()
-        elif reason == QSystemTrayIcon.ActivationReason.DoubleClick:
+        elif reason == QSystemTrayIcon.DoubleClick:
             # Double click - also open panel
             self.open_panel_requested.emit()
     
@@ -209,9 +209,11 @@ class TrayIcon(QObject):
         """Check if tray icon is available"""
         return self._tray is not None and self._tray.isVisible()
     
-    def show_message(self, title: str, message: str, icon: QSystemTrayIcon.MessageIcon = QSystemTrayIcon.MessageIcon.Information):
+    def show_message(self, title: str, message: str, icon=None):
         """Show a notification message"""
         if self._tray:
+            if icon is None:
+                icon = QSystemTrayIcon.Information
             self._tray.showMessage(title, message, icon, 3000)
     
     def hide(self):

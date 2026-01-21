@@ -19,9 +19,9 @@ import argparse
 # Add the current directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QIcon
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QIcon
 
 from app_state import AppState
 from ui.main_window import MainWindow
@@ -41,10 +41,9 @@ def main():
         os.environ['RM01_NO_TRAY'] = '1'
     
     try:
-        # Enable high DPI scaling
-        QApplication.setHighDpiScaleFactorRoundingPolicy(
-            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-        )
+        # Enable high DPI scaling (PyQt5 style)
+        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
         
         # Create application (pass remaining args, not parsed ones)
         app = QApplication([sys.argv[0]] + remaining)
@@ -125,7 +124,7 @@ def main():
         QTimer.singleShot(100, setup_tray)
         
         # Run application
-        return app.exec()
+        return app.exec_()
     
     except Exception as e:
         print(f"Error starting application: {e}")

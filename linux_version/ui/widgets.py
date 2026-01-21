@@ -4,12 +4,12 @@ Implements the liquid glass button and other custom UI components
 """
 
 import os
-from PyQt6.QtWidgets import (
+from PyQt5.QtWidgets import (
     QPushButton, QWidget, QHBoxLayout, QLabel, QVBoxLayout,
     QGraphicsDropShadowEffect, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty, QTimer, QSize
-from PyQt6.QtGui import (
+from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty, QTimer, QSize
+from PyQt5.QtGui import (
     QColor, QPainter, QLinearGradient, QPainterPath, QFont,
     QPixmap, QPen, QBrush
 )
@@ -48,13 +48,13 @@ class LiquidGlassButton(QPushButton):
         
         # Setup
         self.setFixedSize(180, 52)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFont(QFont("", 14, QFont.Weight.DemiBold))
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFont(QFont("", 14, QFont.DemiBold))
         
         # Animation for press effect
         self._scale_anim = QPropertyAnimation(self, b"scale")
         self._scale_anim.setDuration(100)
-        self._scale_anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self._scale_anim.setEasingCurve(QEasingCurve.InOutQuad)
         
         # Shadow effect
         shadow = QGraphicsDropShadowEffect(self)
@@ -124,7 +124,7 @@ class LiquidGlassButton(QPushButton):
     
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.Antialiasing)
         
         # Apply scale transform
         if self._scale != 1.0:
@@ -199,7 +199,7 @@ class LiquidGlassButton(QPushButton):
         # Text
         painter.setPen(QColor(255, 255, 255))
         painter.setFont(self.font())
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, self._text)
+        painter.drawText(rect, Qt.AlignCenter, self._text)
 
 
 class NetworkSpeedDisplay(QWidget):
@@ -224,7 +224,7 @@ class NetworkSpeedDisplay(QWidget):
         
         # Upload
         self.upload_label = QLabel("↑0B/s")
-        self.upload_label.setFont(QFont("Monospace", 11, QFont.Weight.Medium))
+        self.upload_label.setFont(QFont("Monospace", 11, QFont.Normal))
         self.upload_label.setStyleSheet("color: #333;")
         
         # Separator
@@ -233,7 +233,7 @@ class NetworkSpeedDisplay(QWidget):
         
         # Download
         self.download_label = QLabel("↓0B/s")
-        self.download_label.setFont(QFont("Monospace", 11, QFont.Weight.Medium))
+        self.download_label.setFont(QFont("Monospace", 11, QFont.Normal))
         self.download_label.setStyleSheet("color: #333;")
         
         layout.addWidget(self.upload_label)
@@ -267,7 +267,7 @@ class NetworkSpeedDisplay(QWidget):
     def paintEvent(self, event):
         """Custom paint for background"""
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.Antialiasing)
         
         # Background
         path = QPainterPath()
@@ -303,7 +303,7 @@ class RM01DeviceImage(QWidget):
         # Glow animation - use a timer for pulsing effect
         self._glow_anim = QPropertyAnimation(self, b"glow_opacity")
         self._glow_anim.setDuration(1000)
-        self._glow_anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self._glow_anim.setEasingCurve(QEasingCurve.InOutQuad)
         self._glow_anim.finished.connect(self._on_glow_finished)
         self._glow_increasing = True
         
@@ -312,7 +312,7 @@ class RM01DeviceImage(QWidget):
         self._sweep_anim.setDuration(1400)
         self._sweep_anim.setStartValue(-120.0)
         self._sweep_anim.setEndValue(120.0)
-        self._sweep_anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self._sweep_anim.setEasingCurve(QEasingCurve.InOutQuad)
         self._sweep_anim.finished.connect(self._on_sweep_finished)
         
         # Start with red glow
@@ -385,8 +385,8 @@ class RM01DeviceImage(QWidget):
     
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform)
         
         # Calculate centered position
         img_width = 100
