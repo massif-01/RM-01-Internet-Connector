@@ -378,7 +378,7 @@ struct MainView: View {
             Text("Copyright © 2025 massif-01, RMinte AI Technology Co., Ltd.")
                 .font(.system(size: 9))
                 .foregroundColor(.secondary.opacity(0.6))
-                .padding(.bottom, 12)
+                .padding(.bottom, 16)
         }
         .frame(width: 315, height: 440)
     }
