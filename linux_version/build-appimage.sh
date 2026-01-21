@@ -46,7 +46,7 @@ pyinstaller --clean --noconfirm \
     --name rm01-internet-connector \
     --onedir \
     --windowed \
-    --add-data "assets:assets" \
+    --add-data "$SCRIPT_DIR/assets:assets" \
     --hidden-import PyQt5.sip \
     --hidden-import PyQt5.QtCore \
     --hidden-import PyQt5.QtGui \
@@ -54,7 +54,7 @@ pyinstaller --clean --noconfirm \
     --distpath "$BUILD_DIR/pyinstaller_dist" \
     --workpath "$BUILD_DIR/pyinstaller_work" \
     --specpath "$BUILD_DIR" \
-    main.py
+    "$SCRIPT_DIR/main.py"
 
 echo "📁 Creating AppDir structure..."
 
