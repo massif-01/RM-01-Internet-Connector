@@ -40,32 +40,47 @@ class TrayIcon(QObject):
     
     def _setup_tray(self):
         """Initialize system tray icon"""
-        if not QSystemTrayIcon.isSystemTrayAvailable():
-            print("System tray not available on this system")
-            return
-        
-        self._tray = QSystemTrayIcon()
-        
-        # Set icon
-        icon_path = get_asset_path("statusIcon.png")
-        if os.path.exists(icon_path):
-            self._tray.setIcon(QIcon(icon_path))
-        else:
-            # Fallback to application icon
-            icon_path = get_asset_path("icon.png")
+        try:
+            # Allow disabling tray via environment variable
+            if os.environ.get('RM01_NO_TRAY', '').lower() in ('1', 'true', 'yes'):
+                print("System tray disabled via RM01_NO_TRAY environment variable")
+                return
+            
+            # Check for Wayland - tray icons often don't work well
+            session_type = os.environ.get('XDG_SESSION_TYPE', '').lower()
+            if session_type == 'wayland':
+                print("Note: Running on Wayland, system tray may not work")
+            
+            if not QSystemTrayIcon.isSystemTrayAvailable():
+                print("System tray not available on this system")
+                return
+            
+            # Create tray icon with parent to avoid segfault
+            self._tray = QSystemTrayIcon(self)
+            
+            # Set icon
+            icon_path = get_asset_path("statusIcon.png")
             if os.path.exists(icon_path):
                 self._tray.setIcon(QIcon(icon_path))
-        
-        self._tray.setToolTip("RM-01 Internet Connector")
-        
-        # Create menu
-        self._create_menu()
-        
-        # Connect tray activation
-        self._tray.activated.connect(self._on_tray_activated)
-        
-        # Show tray icon
-        self._tray.show()
+            else:
+                # Fallback to application icon
+                icon_path = get_asset_path("icon.png")
+                if os.path.exists(icon_path):
+                    self._tray.setIcon(QIcon(icon_path))
+            
+            self._tray.setToolTip("RM-01 Internet Connector")
+            
+            # Create menu
+            self._create_menu()
+            
+            # Connect tray activation
+            self._tray.activated.connect(self._on_tray_activated)
+            
+            # Show tray icon
+            self._tray.show()
+        except Exception as e:
+            print(f"Warning: Could not create system tray icon: {e}")
+            self._tray = None
     
     def _create_menu(self):
         """Create the context menu"""
