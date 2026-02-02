@@ -2,6 +2,48 @@ import SwiftUI
 import AppKit
 import Combine
 
+// MARK: - Icon Assets
+
+enum IconAssets {
+    private static let resourceBundle: Bundle? = {
+        let bundleName = "RM01InternetConnector_RM01InternetConnector"
+        let candidates = [
+            Bundle.main.resourceURL?.appendingPathComponent("\(bundleName).bundle"),
+            Bundle.main.bundleURL.appendingPathComponent("\(bundleName).bundle"),
+            Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("Resources/\(bundleName).bundle"),
+        ]
+        for candidate in candidates {
+            if let url = candidate, let bundle = Bundle(url: url) {
+                return bundle
+            }
+        }
+        return Bundle.main
+    }()
+    
+    private static func loadIcon(_ name: String) -> NSImage {
+        let bundles = [resourceBundle, Bundle.main].compactMap { $0 }
+        for bundle in bundles {
+            if let url = bundle.url(forResource: name, withExtension: "png"),
+               let image = NSImage(contentsOf: url) {
+                image.isTemplate = true
+                return image
+            }
+        }
+        // Fallback placeholder
+        let placeholder = NSImage(size: NSSize(width: 16, height: 16))
+        return placeholder
+    }
+    
+    static var earth: NSImage { loadIcon("earth-line") }
+    static var translate: NSImage { loadIcon("translate") }
+    static var usb: NSImage { loadIcon("usb-line") }
+    static var shutDown: NSImage { loadIcon("shut-down-line") }
+    static var arrowDropUp: NSImage { loadIcon("arrow-drop-up-line") }
+    static var arrowDropDown: NSImage { loadIcon("arrow-drop-down-line") }
+    static var link: NSImage { loadIcon("link") }
+    static var linkUnlink: NSImage { loadIcon("link-unlink") }
+}
+
 // MARK: - Utilities
 
 /// Format network speed from bytes per second to human-readable string
@@ -51,10 +93,10 @@ class LocalizationManager: ObservableObject {
         "interface_found": "Device Ready",
         "hint_insert": "Please connect RM-01",
         // Menu bar items
-        "menu_not_connected": "○ Not Connected",
-        "menu_connected": "● Connected",
-        "menu_connecting": "● Connecting...",
-        "menu_failed": "● Connection Failed",
+        "menu_not_connected": "Not Connected",
+        "menu_connected": "Connected",
+        "menu_connecting": "Connecting...",
+        "menu_failed": "Connection Failed",
         "menu_connect": "Connect",
         "menu_disconnect": "Disconnect",
         "menu_reconnect": "Reconnect",
@@ -75,10 +117,10 @@ class LocalizationManager: ObservableObject {
         "interface_found": "设备已就绪",
         "hint_insert": "请连接 RM-01",
         // Menu bar items
-        "menu_not_connected": "○ 未连接",
-        "menu_connected": "● 已连接",
-        "menu_connecting": "● 连接中...",
-        "menu_failed": "● 连接失败",
+        "menu_not_connected": "未连接",
+        "menu_connected": "已连接",
+        "menu_connecting": "连接中...",
+        "menu_failed": "连接失败",
         "menu_connect": "连接",
         "menu_disconnect": "断开连接",
         "menu_reconnect": "重新连接",
@@ -93,37 +135,37 @@ struct NetworkSpeedDisplay: View {
     @ObservedObject var appState: AppState
     
     var body: some View {
-        if appState.connectionStatus == .connected {
-            HStack(spacing: 6) {
-                // Upload speed
-                HStack(spacing: 3) {
-                    Text("↑")
-                        .font(.system(size: 12, weight: .medium))
-                    Text(formatSpeed(appState.uploadSpeed))
-                        .font(.system(size: 12, weight: .medium, design: .monospaced))
-                }
-                
-                Text("|")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary.opacity(0.5))
-                
-                // Download speed
-                HStack(spacing: 3) {
-                    Text("↓")
-                        .font(.system(size: 12, weight: .medium))
-                    Text(formatSpeed(appState.downloadSpeed))
-                        .font(.system(size: 12, weight: .medium, design: .monospaced))
-                }
+        // Always occupy fixed height to keep copyright position consistent
+        HStack(spacing: 6) {
+            // Upload speed
+            HStack(spacing: 3) {
+                Image(nsImage: IconAssets.arrowDropUp)
+                    .resizable()
+                    .frame(width: 14, height: 14)
+                Text(formatSpeed(appState.uploadSpeed))
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
             }
-            .foregroundColor(.primary)
-            .frame(width: 180)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.secondary.opacity(0.1))
-            )
-            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            
+            Text("|")
+                .font(.system(size: 12))
+                .foregroundColor(.secondary.opacity(0.5))
+            
+            // Download speed
+            HStack(spacing: 3) {
+                Image(nsImage: IconAssets.arrowDropDown)
+                    .resizable()
+                    .frame(width: 14, height: 14)
+                Text(formatSpeed(appState.downloadSpeed))
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+            }
         }
+        .foregroundColor(.primary)
+        .frame(width: 180, height: 36)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.secondary.opacity(appState.connectionStatus == .connected ? 0.1 : 0))
+        )
+        .opacity(appState.connectionStatus == .connected ? 1 : 0)
     }
 }
 
@@ -131,7 +173,7 @@ struct NetworkSpeedDisplay: View {
 
 struct LiquidGlassButton: View {
     let title: String
-    let icon: String
+    let icon: NSImage
     let action: () -> Void
     var isDestructive: Bool = false
     var isDisabled: Bool = false
@@ -142,8 +184,9 @@ struct LiquidGlassButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .medium))
+                Image(nsImage: icon)
+                    .resizable()
+                    .frame(width: 16, height: 16)
                 Text(title)
                     .fontWeight(.medium)
             }
@@ -274,20 +317,26 @@ struct MainView: View {
                 Button(action: {
                     loc.language = loc.language == .english ? .chinese : .english
                 }) {
-                    Text(loc.language.rawValue)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.accentColor.opacity(0.1))
-                        .cornerRadius(6)
+                    HStack(spacing: 4) {
+                        Image(nsImage: IconAssets.translate)
+                            .resizable()
+                            .frame(width: 14, height: 14)
+                        Text(loc.language.rawValue)
+                            .font(.caption)
+                            .fontWeight(.bold)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.accentColor.opacity(0.1))
+                    .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
                 
                 Spacer()
                 
-                Image(systemName: "network")
-                    .font(.title2)
+                Image(nsImage: IconAssets.earth)
+                    .resizable()
+                    .frame(width: 22, height: 22)
                     .foregroundColor(.accentColor)
                 
                 Text(loc.localized("windowTitle"))
@@ -296,12 +345,17 @@ struct MainView: View {
                 Spacer()
                 
                 // Invisible placeholder to balance the layout
-                Text(loc.language.rawValue)
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .opacity(0)
+                HStack(spacing: 4) {
+                    Image(nsImage: IconAssets.translate)
+                        .resizable()
+                        .frame(width: 14, height: 14)
+                    Text(loc.language.rawValue)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .opacity(0)
             }
             .padding(.horizontal)
             .padding(.top, 16)
@@ -323,8 +377,9 @@ struct MainView: View {
                 // Device info
                 if let interface = appState.currentInterface {
                     HStack(spacing: 4) {
-                        Image(systemName: "cable.connector")
-                            .font(.caption)
+                        Image(nsImage: IconAssets.usb)
+                            .resizable()
+                            .frame(width: 12, height: 12)
                         Text(interface.device)
                             .font(.caption)
                     }
@@ -358,7 +413,7 @@ struct MainView: View {
             // Liquid Glass Action Button
             LiquidGlassButton(
                 title: appState.isConnected ? loc.localized("disconnect") : loc.localized("connect"),
-                icon: appState.isConnected ? "power" : "network",
+                icon: IconAssets.shutDown,
                 action: {
                     if appState.isConnected {
                         appState.disconnect()
@@ -375,7 +430,7 @@ struct MainView: View {
                 .frame(height: 16)
             
             // Copyright footer
-            Text("Copyright © 2025 massif-01, RMinte AI Technology Co., Ltd.")
+            Text("Copyright © 2026 massif-01, RMinte AI Technology Co., Ltd.")
                 .font(.system(size: 9))
                 .foregroundColor(.secondary.opacity(0.6))
                 .padding(.bottom, 16)

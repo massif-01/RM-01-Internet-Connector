@@ -97,10 +97,11 @@ class MainWindow(QMainWindow):
         # Gap
         layout.addSpacing(15)
         
-        # Speed display
+        # Speed display (always takes space for consistent copyright position)
         self.speed_display = NetworkSpeedDisplay()
-        self.speed_display.setVisible(False)
+        self.speed_display.setFixedHeight(36)  # Fixed height
         speed_container = QWidget()
+        speed_container.setFixedHeight(36)  # Fixed height for container
         speed_layout = QHBoxLayout(speed_container)
         speed_layout.setContentsMargins(0, 0, 0, 0)
         speed_layout.addStretch()
@@ -157,7 +158,7 @@ class MainWindow(QMainWindow):
         
         # Icon and title
         icon_label = QLabel()
-        icon_path = get_asset_path("icon.png")
+        icon_path = get_asset_path("earth-line.png")
         if os.path.exists(icon_path):
             pixmap = QPixmap(icon_path).scaled(22, 22, Qt.KeepAspectRatio, 
                                                 Qt.SmoothTransformation)
@@ -211,7 +212,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(footer)
         layout.setContentsMargins(0, 0, 0, 12)
         
-        copyright_label = QLabel("Copyright © 2025 massif-01, RMinte AI Technology Co., Ltd.")
+        copyright_label = QLabel("Copyright © 2026 massif-01, RMinte AI Technology Co., Ltd.")
         copyright_label.setFont(QFont("", 8))
         copyright_label.setStyleSheet("color: rgba(0, 0, 0, 0.4);")
         copyright_label.setAlignment(Qt.AlignCenter)
@@ -254,15 +255,15 @@ class MainWindow(QMainWindow):
         
         # Update device info
         if self.app_state.current_interface:
-            self.device_label.setText(f"🔌 {self.app_state.current_interface.name}")
+            self.device_label.setText(f"⚡ {self.app_state.current_interface.name}")
         else:
             self.device_label.setText(loc("hint_insert"))
         
         # Update device image
         self.device_image.set_connected(status == ConnectionStatus.CONNECTED)
         
-        # Update speed display visibility
-        self.speed_display.setVisible(status == ConnectionStatus.CONNECTED)
+        # Update speed display visibility (use opacity to keep layout stable)
+        self.speed_display.set_visible(status == ConnectionStatus.CONNECTED)
     
     def _on_connect_clicked(self):
         """Handle connect/disconnect button click"""

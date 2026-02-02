@@ -201,7 +201,7 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
         if appState.connectionStatus == .connected {
             let uploadStr = formatSpeed(appState.uploadSpeed)
             let downloadStr = formatSpeed(appState.downloadSpeed)
-            speedMenuItem.title = "↑\(uploadStr)   |   ↓\(downloadStr)"
+            speedMenuItem.title = "▲\(uploadStr)   |   ▼\(downloadStr)"
             speedMenuItem.isHidden = false
             speedSeparator?.isHidden = false
         } else {
@@ -217,36 +217,41 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
     private func updateMenuItems() {
         switch appState.connectionStatus {
         case .connected:
-            let text = loc.localized("menu_connected")
-            statusMenuItem.title = text
-            // Set green color using attributed string
-            let greenDot = NSMutableAttributedString(string: "● ", attributes: [.foregroundColor: NSColor.systemGreen])
-            greenDot.append(NSAttributedString(string: text.dropFirst(2).trimmingCharacters(in: .whitespaces)))
-            statusMenuItem.attributedTitle = greenDot
+            statusMenuItem.title = loc.localized("menu_connected")
+            statusMenuItem.attributedTitle = nil
+            statusMenuItem.image = tintedIcon(IconAssets.link, color: .systemGreen)
             connectMenuItem.title = loc.localized("menu_disconnect")
             connectMenuItem.isEnabled = true
         case .connecting:
-            let text = loc.localized("menu_connecting")
-            statusMenuItem.title = text
-            let yellowDot = NSMutableAttributedString(string: "● ", attributes: [.foregroundColor: NSColor.systemYellow])
-            yellowDot.append(NSAttributedString(string: text.dropFirst(2).trimmingCharacters(in: .whitespaces)))
-            statusMenuItem.attributedTitle = yellowDot
-            connectMenuItem.title = text
+            statusMenuItem.title = loc.localized("menu_connecting")
+            statusMenuItem.attributedTitle = nil
+            statusMenuItem.image = tintedIcon(IconAssets.link, color: .systemYellow)
+            connectMenuItem.title = loc.localized("menu_connecting")
             connectMenuItem.isEnabled = false
         case .failed:
-            let text = loc.localized("menu_failed")
-            statusMenuItem.title = text
-            let redDot = NSMutableAttributedString(string: "● ", attributes: [.foregroundColor: NSColor.systemRed])
-            redDot.append(NSAttributedString(string: text.dropFirst(2).trimmingCharacters(in: .whitespaces)))
-            statusMenuItem.attributedTitle = redDot
+            statusMenuItem.title = loc.localized("menu_failed")
+            statusMenuItem.attributedTitle = nil
+            statusMenuItem.image = tintedIcon(IconAssets.linkUnlink, color: .systemRed)
             connectMenuItem.title = loc.localized("menu_reconnect")
             connectMenuItem.isEnabled = true
         case .idle:
             statusMenuItem.title = loc.localized("menu_not_connected")
             statusMenuItem.attributedTitle = nil
+            statusMenuItem.image = tintedIcon(IconAssets.linkUnlink, color: .secondaryLabelColor)
             connectMenuItem.title = loc.localized("menu_connect")
             connectMenuItem.isEnabled = true
         }
+    }
+    
+    private func tintedIcon(_ image: NSImage, color: NSColor) -> NSImage {
+        let tinted = image.copy() as! NSImage
+        tinted.lockFocus()
+        color.set()
+        let imageRect = NSRect(origin: .zero, size: tinted.size)
+        imageRect.fill(using: .sourceAtop)
+        tinted.unlockFocus()
+        tinted.isTemplate = false
+        return tinted
     }
     
     private func recreateMenuItems() {

@@ -12,7 +12,7 @@
     <Version>1.0.1</Version>
     <Company>RMinte AI Technology Co., Ltd.</Company>
     <Product>RM-01 Internet Connector</Product>
-    <Copyright>Copyright © 2025 massif-01, RMinte AI Technology Co., Ltd.</Copyright>
+    <Copyright>Copyright © 2026 massif-01, RMinte AI Technology Co., Ltd.</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">

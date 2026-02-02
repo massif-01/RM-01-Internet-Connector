@@ -205,16 +205,16 @@ class LiquidGlassButton(QPushButton):
 class NetworkSpeedDisplay(QWidget):
     """
     Display for network upload/download speeds
-    Only visible when connected
+    Always takes space but content opacity changes with connection state
     """
     
     def __init__(self, parent=None):
         super().__init__(parent)
         self._upload_speed = 0.0
         self._download_speed = 0.0
-        self._visible = False
+        self._content_visible = False
         
-        self.setFixedSize(160, 32)
+        self.setFixedSize(160, 36)
         self._setup_ui()
     
     def _setup_ui(self):
@@ -222,8 +222,23 @@ class NetworkSpeedDisplay(QWidget):
         layout.setContentsMargins(10, 6, 10, 6)
         layout.setSpacing(4)
         
-        # Upload
-        self.upload_label = QLabel("↑0B/s")
+        # Container for content (to control opacity)
+        self.content_widget = QWidget()
+        content_layout = QHBoxLayout(self.content_widget)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(4)
+        
+        # Upload arrow icon
+        self.upload_icon = QLabel()
+        arrow_up_path = get_asset_path("arrow-drop-up-line.png")
+        if os.path.exists(arrow_up_path):
+            pixmap = QPixmap(arrow_up_path).scaled(14, 14, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.upload_icon.setPixmap(pixmap)
+        else:
+            self.upload_icon.setText("▲")
+        
+        # Upload speed
+        self.upload_label = QLabel("0B/s")
         self.upload_label.setFont(QFont("Monospace", 10, QFont.Normal))
         self.upload_label.setStyleSheet("color: #333;")
         
@@ -231,22 +246,38 @@ class NetworkSpeedDisplay(QWidget):
         sep = QLabel("|")
         sep.setStyleSheet("color: rgba(0,0,0,0.3);")
         
-        # Download
-        self.download_label = QLabel("↓0B/s")
+        # Download arrow icon
+        self.download_icon = QLabel()
+        arrow_down_path = get_asset_path("arrow-drop-down-line.png")
+        if os.path.exists(arrow_down_path):
+            pixmap = QPixmap(arrow_down_path).scaled(14, 14, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.download_icon.setPixmap(pixmap)
+        else:
+            self.download_icon.setText("▼")
+        
+        # Download speed
+        self.download_label = QLabel("0B/s")
         self.download_label.setFont(QFont("Monospace", 10, QFont.Normal))
         self.download_label.setStyleSheet("color: #333;")
         
-        layout.addWidget(self.upload_label)
-        layout.addWidget(sep)
-        layout.addWidget(self.download_label)
+        content_layout.addWidget(self.upload_icon)
+        content_layout.addWidget(self.upload_label)
+        content_layout.addWidget(sep)
+        content_layout.addWidget(self.download_icon)
+        content_layout.addWidget(self.download_label)
+        
+        layout.addWidget(self.content_widget)
+        
+        # Initially hidden
+        self.content_widget.setVisible(False)
     
     def update_speed(self, upload: float, download: float):
         """Update the displayed speeds"""
         self._upload_speed = upload
         self._download_speed = download
         
-        self.upload_label.setText(f"↑{self._format_speed(upload)}")
-        self.download_label.setText(f"↓{self._format_speed(download)}")
+        self.upload_label.setText(self._format_speed(upload))
+        self.download_label.setText(self._format_speed(download))
     
     def _format_speed(self, bytes_per_second: float) -> str:
         """Format speed to human-readable string"""
@@ -259,20 +290,26 @@ class NetworkSpeedDisplay(QWidget):
         else:
             return f"{bytes_per_second / 1024 / 1024 / 1024:.2f}GB/s"
     
+    def set_visible(self, visible: bool):
+        """Show or hide content (widget always takes space)"""
+        self._content_visible = visible
+        self.content_widget.setVisible(visible)
+        self.update()
+    
     def set_visible_animated(self, visible: bool):
-        """Show or hide with animation"""
-        self._visible = visible
-        self.setVisible(visible)
+        """Show or hide with animation (alias for set_visible)"""
+        self.set_visible(visible)
     
     def paintEvent(self, event):
         """Custom paint for background"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         
-        # Background
-        path = QPainterPath()
-        path.addRoundedRect(0, 0, self.width(), self.height(), 10, 10)
-        painter.fillPath(path, QColor(0, 0, 0, 25))  # 10% black
+        # Background only when content is visible
+        if self._content_visible:
+            path = QPainterPath()
+            path.addRoundedRect(0, 0, self.width(), self.height(), 10, 10)
+            painter.fillPath(path, QColor(0, 0, 0, 25))  # 10% black
         
         super().paintEvent(event)
 
