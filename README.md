@@ -11,7 +11,11 @@
 
 RM-01 Internet Connector is a cross-platform application that shares your computer's internet connection with RM-01 devices via the AX88179A USB Ethernet adapter.
 
-<img src="icons/screenshot.png" alt="App Screenshot" width="50%">
+<p>
+<img src="icons/screenshot-ready.png" alt="Ready" width="32%">
+<img src="icons/screenshot-connected.png" alt="Connected" width="32%">
+<img src="icons/screenshot-menu.png" alt="Menu Bar" width="32%">
+</p>
 
 ### Supported Platforms
 
@@ -241,7 +245,7 @@ This application:
 
 Apache License 2.0
 
-Copyright © 2025 massif-01, RMinte AI Technology Co., Ltd.
+Copyright © 2026 massif-01, RMinte AI Technology Co., Ltd.
 
 ---
 
@@ -252,7 +256,11 @@ Copyright © 2025 massif-01, RMinte AI Technology Co., Ltd.
 
 RM-01 互联网连接助手是一款跨平台应用，通过 AX88179A USB 网卡将电脑的互联网连接共享给 RM-01 设备。
 
-<img src="icons/screenshot.png" alt="应用截图" width="50%">
+<p>
+<img src="icons/screenshot-ready.png" alt="准备就绪" width="32%">
+<img src="icons/screenshot-connected.png" alt="已连接" width="32%">
+<img src="icons/screenshot-menu.png" alt="状态栏菜单" width="32%">
+</p>
 
 ### 支持平台
 
@@ -482,7 +490,7 @@ RM-01 内置 AX88179A 交换机芯片：
 
 Apache License 2.0
 
-Copyright © 2025 massif-01, RMinte AI Technology Co., Ltd.
+Copyright © 2026 massif-01, RMinte AI Technology Co., Ltd.
 
 ---
 

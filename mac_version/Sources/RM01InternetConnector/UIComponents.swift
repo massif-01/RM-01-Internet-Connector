@@ -331,18 +331,13 @@ struct MainView: View {
                 Button(action: {
                     loc.language = loc.language == .english ? .chinese : .english
                 }) {
-                    HStack(spacing: 4) {
-                        Image(nsImage: IconAssets.translate)
-                            .resizable()
-                            .frame(width: 14, height: 14)
-                        Text(loc.language.rawValue)
-                            .font(.caption)
-                            .fontWeight(.bold)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.accentColor.opacity(0.1))
-                    .cornerRadius(6)
+                    Text(loc.language.rawValue)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.accentColor.opacity(0.1))
+                        .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
                 
@@ -350,37 +345,32 @@ struct MainView: View {
                 
                 Image(nsImage: IconAssets.earth)
                     .resizable()
-                    .frame(width: 22, height: 22)
-                    .foregroundColor(.accentColor)
+                    .frame(width: 16, height: 16)
                 
                 Text(loc.localized("windowTitle"))
-                    .font(.headline)
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
                 
                 Spacer()
                 
                 // Invisible placeholder to balance the layout
-                HStack(spacing: 4) {
-                    Image(nsImage: IconAssets.translate)
-                        .resizable()
-                        .frame(width: 14, height: 14)
-                    Text(loc.language.rawValue)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .opacity(0)
+                Text(loc.language.rawValue)
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .opacity(0)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 12)
             .padding(.top, 16)
-            .padding(.bottom, 12)
+            .padding(.bottom, 10)
             
             Divider()
-                .padding(.horizontal)
+                .padding(.horizontal, 12)
             
             // Spacer for vertical centering logic - Top Buffer
             Spacer()
-                .frame(height: 15)
+                .frame(height: 10)
             
             // Status text
             VStack(spacing: 4) {
@@ -422,7 +412,7 @@ struct MainView: View {
             
             // Gap 3: Small spacing before button
             Spacer()
-                .frame(height: 12)
+                .frame(height: 10)
             
             // Liquid Glass Action Button
             LiquidGlassButton(
@@ -441,13 +431,12 @@ struct MainView: View {
             .padding(.horizontal, 30)
             
             Spacer()
-                .frame(height: 16)
             
             // Copyright footer
             Text("Copyright © 2026 massif-01, RMinte AI Technology Co., Ltd.")
                 .font(.system(size: 9))
                 .foregroundColor(.secondary.opacity(0.6))
-                .padding(.bottom, 16)
+                .padding(.bottom, 20)
         }
         .frame(width: 315, height: 440)
     }
