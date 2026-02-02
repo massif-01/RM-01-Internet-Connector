@@ -9,7 +9,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="RM-01 Internet Connector"
 APP_ID="com.rminte.rm01-internet-connector"
-VERSION="1.1.1"
+VERSION="1.1.3"
 
 echo "🔨 Building RM-01 Internet Connector AppImage..."
 echo "   Version: $VERSION"
