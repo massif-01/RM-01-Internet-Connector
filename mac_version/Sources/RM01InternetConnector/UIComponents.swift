@@ -5,31 +5,45 @@ import Combine
 // MARK: - Icon Assets
 
 enum IconAssets {
-    private static let resourceBundle: Bundle? = {
+    /// Get all possible locations for resource files
+    private static func resourceURLs(for name: String, extension ext: String) -> [URL] {
         let bundleName = "RM01InternetConnector_RM01InternetConnector"
-        let candidates = [
+        var urls: [URL] = []
+        
+        // SPM resource bundle locations (flat structure - files directly in bundle root)
+        let bundleCandidates: [URL?] = [
             Bundle.main.resourceURL?.appendingPathComponent("\(bundleName).bundle"),
             Bundle.main.bundleURL.appendingPathComponent("\(bundleName).bundle"),
             Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("Resources/\(bundleName).bundle"),
         ]
-        for candidate in candidates {
-            if let url = candidate, let bundle = Bundle(url: url) {
-                return bundle
-            }
+        
+        for candidate in bundleCandidates.compactMap({ $0 }) {
+            // SPM bundles have flat structure - files directly in bundle root
+            urls.append(candidate.appendingPathComponent("\(name).\(ext)"))
         }
-        return Bundle.main
-    }()
+        
+        // Also try Bundle.main resources directly
+        if let mainURL = Bundle.main.url(forResource: name, withExtension: ext) {
+            urls.append(mainURL)
+        }
+        
+        // Try main bundle's Resources folder directly
+        if let resourceURL = Bundle.main.resourceURL {
+            urls.append(resourceURL.appendingPathComponent("\(name).\(ext)"))
+        }
+        
+        return urls
+    }
     
     private static func loadIcon(_ name: String) -> NSImage {
-        let bundles = [resourceBundle, Bundle.main].compactMap { $0 }
-        for bundle in bundles {
-            if let url = bundle.url(forResource: name, withExtension: "png"),
+        for url in resourceURLs(for: name, extension: "png") {
+            if FileManager.default.fileExists(atPath: url.path),
                let image = NSImage(contentsOf: url) {
                 image.isTemplate = true
                 return image
             }
         }
-        // Fallback placeholder
+        // Fallback: create a simple placeholder
         let placeholder = NSImage(size: NSSize(width: 16, height: 16))
         return placeholder
     }
