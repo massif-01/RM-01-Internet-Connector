@@ -27,12 +27,12 @@ RM-01 Internet Connector is a cross-platform application that shares your comput
 
 ### Features
 
-- 🌐 **One-Click Connection** - Share internet with a single click
-- 📊 **Real-time Speed Monitor** - Live upload/download speed display (GUI)
-- 🎨 **Consistent UI** - Same beautiful design across all platforms
-- 🌍 **Bilingual Support** - Full Chinese and English localization
-- ⚡ **Auto Detection** - Automatically detects AX88179A USB Ethernet adapters
-- 🖥️ **CLI Support** (All Platforms) - Command-line control for automation and SSH remote access
+- **One-Click Connection** - Share internet with a single click
+- **Real-time Speed Monitor** - Live upload/download speed display (GUI)
+- **Consistent UI** - Same beautiful design across all platforms
+- **Bilingual Support** - Full Chinese and English localization
+- **Auto Detection** - Automatically detects AX88179A USB Ethernet adapters
+- **CLI Support** (All Platforms) - Command-line control for automation and SSH remote access
 
 ### Project Structure
 
@@ -272,12 +272,12 @@ RM-01 互联网连接助手是一款跨平台应用，通过 AX88179A USB 网卡
 
 ### 功能特点
 
-- 🌐 **一键连接** - 单击即可共享网络
-- 📊 **实时网速监控** - 实时显示上传/下载速度（图形界面）
-- 🎨 **统一界面** - 所有平台保持一致的精美设计
-- 🌍 **双语支持** - 完整的中英文本地化
-- ⚡ **自动检测** - 自动检测 AX88179A USB 网卡
-- 🖥️ **命令行支持** (全平台) - 支持自动化和 SSH 远程控制
+- **一键连接** - 单击即可共享网络
+- **实时网速监控** - 实时显示上传/下载速度（图形界面）
+- **统一界面** - 所有平台保持一致的精美设计
+- **双语支持** - 完整的中英文本地化
+- **自动检测** - 自动检测 AX88179A USB 网卡
+- **命令行支持** (全平台) - 支持自动化和 SSH 远程控制
 
 ### 项目结构
 
@@ -496,6 +496,6 @@ Copyright © 2026 massif-01, RMinte AI Technology Co., Ltd.
 
 ## Credits
 
-Made with ❤️ for RM-01 users
+Made for RM-01 users
 
 Built with Swift, C#, and Python

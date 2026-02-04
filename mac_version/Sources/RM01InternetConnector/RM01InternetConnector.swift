@@ -201,7 +201,7 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
         if appState.connectionStatus == .connected {
             let uploadStr = formatSpeed(appState.uploadSpeed)
             let downloadStr = formatSpeed(appState.downloadSpeed)
-            speedMenuItem.title = "▲\(uploadStr)   |   ▼\(downloadStr)"
+            speedMenuItem.title = "▲  \(uploadStr)   |   ▼  \(downloadStr)"
             speedMenuItem.isHidden = false
             speedSeparator?.isHidden = false
         } else {
