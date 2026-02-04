@@ -215,29 +215,45 @@ final class RM01InternetConnectorApp: NSObject, NSApplicationDelegate, NSWindowD
     
     
     private func updateMenuItems() {
+        // Colors matching the main window button colors
+        let connectedGreen = NSColor(red: 0.18, green: 0.80, blue: 0.28, alpha: 1.0)
+        let disconnectedRed = NSColor(red: 0.95, green: 0.45, blue: 0.45, alpha: 1.0)
+        
         switch appState.connectionStatus {
         case .connected:
-            statusMenuItem.title = loc.localized("menu_connected")
-            statusMenuItem.attributedTitle = nil
-            statusMenuItem.image = tintedIcon(IconAssets.link, color: .systemGreen)
+            let text = loc.localized("menu_connected")
+            statusMenuItem.attributedTitle = NSAttributedString(
+                string: text,
+                attributes: [.foregroundColor: connectedGreen]
+            )
+            statusMenuItem.image = tintedIcon(IconAssets.link, color: connectedGreen)
             connectMenuItem.title = loc.localized("menu_disconnect")
             connectMenuItem.isEnabled = true
         case .connecting:
-            statusMenuItem.title = loc.localized("menu_connecting")
-            statusMenuItem.attributedTitle = nil
+            let text = loc.localized("menu_connecting")
+            statusMenuItem.attributedTitle = NSAttributedString(
+                string: text,
+                attributes: [.foregroundColor: NSColor.systemYellow]
+            )
             statusMenuItem.image = tintedIcon(IconAssets.link, color: .systemYellow)
             connectMenuItem.title = loc.localized("menu_connecting")
             connectMenuItem.isEnabled = false
         case .failed:
-            statusMenuItem.title = loc.localized("menu_failed")
-            statusMenuItem.attributedTitle = nil
+            let text = loc.localized("menu_failed")
+            statusMenuItem.attributedTitle = NSAttributedString(
+                string: text,
+                attributes: [.foregroundColor: NSColor.systemRed]
+            )
             statusMenuItem.image = tintedIcon(IconAssets.linkUnlink, color: .systemRed)
             connectMenuItem.title = loc.localized("menu_reconnect")
             connectMenuItem.isEnabled = true
         case .idle:
-            statusMenuItem.title = loc.localized("menu_not_connected")
-            statusMenuItem.attributedTitle = nil
-            statusMenuItem.image = tintedIcon(IconAssets.linkUnlink, color: .secondaryLabelColor)
+            let text = loc.localized("menu_not_connected")
+            statusMenuItem.attributedTitle = NSAttributedString(
+                string: text,
+                attributes: [.foregroundColor: disconnectedRed]
+            )
+            statusMenuItem.image = tintedIcon(IconAssets.linkUnlink, color: disconnectedRed)
             connectMenuItem.title = loc.localized("menu_connect")
             connectMenuItem.isEnabled = true
         }
