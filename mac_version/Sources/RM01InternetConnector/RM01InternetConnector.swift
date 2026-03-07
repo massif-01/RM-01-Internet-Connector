@@ -747,6 +747,7 @@ enum ShellScripts {
         GW="10.10.99.100"
         DNS="8.8.8.8"
         NAT_CONF="/tmp/rm01_nat.conf"
+        set -e
         
         # Find the active internet interface (works with Wi-Fi, Ethernet, iPhone USB, etc.)
         # Excludes VPN (utun) and link-local routes, finds the physical interface with a real gateway
@@ -761,7 +762,7 @@ enum ShellScripts {
         fi
 
         # Check if network service exists, if not create it
-        if ! /usr/sbin/networksetup -listallnetworkservices | grep -q "^$IFACE$"; then
+        if ! /usr/sbin/networksetup -listallnetworkservices | /usr/bin/sed '1d; s/^[*][[:space:]]*//; s/^[[:space:]]*//' | /usr/bin/grep -Fxq -- "$IFACE"; then
             /usr/sbin/networksetup -createnetworkservice "$IFACE" "$DEVICE"
         fi
 
@@ -780,6 +781,49 @@ enum ShellScripts {
         /sbin/pfctl -F all 2>/dev/null || true
         /sbin/pfctl -f "$NAT_CONF" -e 2>/dev/null
         
+        # Reorder network services: put upstream (Wi-Fi/LAN) before AX88179 so Mac can access internet
+        ORDER_BACKUP="/tmp/rm01_service_order_backup_${DEVICE}"
+        ORDER_OUT=$(/usr/sbin/networksetup -listnetworkserviceorder 2>/dev/null || true)
+        if [ -n "$ORDER_OUT" ]; then
+            echo "$ORDER_OUT" | /usr/bin/awk '
+                /^[(][0-9*]+[)]/ {
+                    svc=$0
+                    sub(/^[(][0-9*]+[)][[:space:]]*/, "", svc)
+                    sub(/[[:space:]]*[(]Hardware Port:.*/, "", svc)
+                    gsub(/^[[:space:]]|[[:space:]]$/, "", svc)
+                    if (svc != "") print svc
+                }
+            ' > "$ORDER_BACKUP"
+            UPSTREAM_SVC=$(echo "$ORDER_OUT" | /usr/bin/awk -v dev="$INET_DEVICE" '
+                /^[(][0-9*]+[)]/ {
+                    svc=$0
+                    sub(/^[(][0-9*]+[)][[:space:]]*/, "", svc)
+                    sub(/[[:space:]]*[(]Hardware Port:.*/, "", svc)
+                    gsub(/^[[:space:]]|[[:space:]]$/, "", svc)
+                }
+                /Hardware Port:/ {
+                    if ($0 ~ ", Device: " dev "\\)") {
+                        print svc
+                        exit
+                    }
+                }
+            ')
+            if [ -n "$UPSTREAM_SVC" ]; then
+                NEW_ORDER=$(/usr/bin/mktemp /tmp/rm01_neworder.XXXXXX)
+                echo "$UPSTREAM_SVC" > "$NEW_ORDER"
+                echo "$IFACE" >> "$NEW_ORDER"
+                while IFS= read -r svc; do
+                    [ "$svc" = "$UPSTREAM_SVC" ] && continue
+                    [ "$svc" = "$IFACE" ] && continue
+                    echo "$svc" >> "$NEW_ORDER"
+                done < "$ORDER_BACKUP"
+                if ! /bin/bash -c 'arr=(); while IFS= read -r line; do [ -n "$line" ] && arr+=("$line"); done < "$1"; [ ${#arr[@]} -gt 0 ] && /usr/sbin/networksetup -ordernetworkservices "${arr[@]}"' bash "$NEW_ORDER"; then
+                    echo "Warning: failed to apply network service order" >&2
+                fi
+                rm -f "$NEW_ORDER"
+            fi
+        fi
+        
         # Cleanup
         rm -f "$NAT_CONF"
         """
@@ -789,24 +833,43 @@ enum ShellScripts {
         """
         IFACE="\(interface)"
         DEVICE="\(device)"
+        FAILED=0
+        run_step() {
+            "$@" || {
+                echo "Warning: command failed: $*" >&2
+                FAILED=1
+            }
+        }
         
         # Disable IP forwarding
-        /usr/sbin/sysctl -w net.inet.ip.forwarding=0
+        run_step /usr/sbin/sysctl -w net.inet.ip.forwarding=0
         
         # Flush NAT rules and disable pfctl
         /sbin/pfctl -d 2>/dev/null || true
         /sbin/pfctl -F all 2>/dev/null || true
         
         # Restore DHCP for the interface
-        /usr/sbin/networksetup -setdhcp "$IFACE"
+        run_step /usr/sbin/networksetup -setdhcp "$IFACE"
         
         # Clear DNS settings (empty = use DHCP)
-        /usr/sbin/networksetup -setdnsservers "$IFACE" empty
+        run_step /usr/sbin/networksetup -setdnsservers "$IFACE" empty
         
         # Refresh the interface to trigger DHCP request
         /sbin/ifconfig "$DEVICE" down 2>/dev/null || true
         sleep 1
         /sbin/ifconfig "$DEVICE" up 2>/dev/null || true
+        
+        # Restore network service order from backup (saved at connect time)
+        ORDER_BACKUP="/tmp/rm01_service_order_backup_${DEVICE}"
+        if [ -f "$ORDER_BACKUP" ]; then
+            if ! /bin/bash -c 'arr=(); while IFS= read -r line; do [ -n "$line" ] && arr+=("$line"); done < "$1"; [ ${#arr[@]} -gt 0 ] && /usr/sbin/networksetup -ordernetworkservices "${arr[@]}"' bash "$ORDER_BACKUP"; then
+                echo "Warning: failed to restore network service order" >&2
+                FAILED=1
+            fi
+            rm -f "$ORDER_BACKUP"
+        fi
+        
+        exit $FAILED
         """
     }
 }

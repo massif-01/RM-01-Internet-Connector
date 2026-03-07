@@ -234,6 +234,7 @@ This application:
 2. Configures static IP (10.10.99.100) for stability
 3. Enables IP forwarding
 4. Sets up NAT to share internet with RM-01
+5. (macOS) Adjusts network service order so Wi-Fi/LAN stays above AX88179, ensuring the Mac can access the internet
 
 ### System Requirements
 
@@ -479,6 +480,7 @@ RM-01 内置 AX88179A 交换机芯片：
 2. 配置静态 IP (10.10.99.100) 以确保稳定性
 3. 启用 IP 转发
 4. 设置 NAT 将网络共享给 RM-01
+5. (macOS) 调整网络服务顺序，使 Wi-Fi/LAN 优先于 AX88179，确保 Mac 可正常上网
 
 ### 系统要求
 
