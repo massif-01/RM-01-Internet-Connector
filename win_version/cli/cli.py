@@ -21,13 +21,16 @@ import time
 import locale
 import subprocess
 import platform
+import tempfile
 from typing import Optional
 
 # Add the current directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+IS_WINDOWS = platform.system() == 'Windows'
+
 # Import platform-specific network service
-if platform.system() == 'Windows':
+if IS_WINDOWS:
     from network_service_windows import WindowsNetworkService as NetworkService, NetworkInterface
 else:
     # Fallback to Linux version if running on Linux
@@ -112,11 +115,13 @@ class I18n:
                 'password_prompt': 'Password',
                 'cancelled': 'Cancelled',
                 'password_needed': 'Password is required',
+                'admin_required': 'Administrator privileges are required for network configuration',
+                'run_as_admin': 'Please run Command Prompt or PowerShell as Administrator',
                 
                 'configuring_network': 'Configuring network...',
                 'setting_static_ip': 'Setting static IP',
-                'enabling_forwarding': 'Enabling IP forwarding',
-                'setting_nat': 'Setting up NAT',
+                'enabling_forwarding': 'Preparing Windows NAT' if IS_WINDOWS else 'Enabling IP forwarding',
+                'setting_nat': 'Enabling Windows NAT' if IS_WINDOWS else 'Setting up NAT',
                 'sharing_enabled': 'Internet sharing enabled!',
                 'rm01_can_access': 'RM-01 can now access the internet through this computer.',
                 
@@ -125,12 +130,13 @@ class I18n:
                 
                 'disconnecting': 'Disconnecting',
                 'no_active_connection': 'No active connection found',
-                'removing_nat': 'Removing NAT rules...',
+                'removing_nat': 'Disabling Windows NAT...' if IS_WINDOWS else 'Removing NAT rules...',
                 'restoring_dhcp': 'Restoring DHCP...',
                 'sharing_disabled': 'Internet sharing disabled',
                 'failed_to_disable': 'Failed to disable sharing',
                 
                 'ip_forwarding_disabled': 'IP forwarding is disabled',
+                'diagnostic': 'Diagnostic',
                 
                 'commands': 'Commands',
                 'examples': 'Examples',
@@ -181,11 +187,13 @@ class I18n:
                 'password_prompt': '密码',
                 'cancelled': '已取消',
                 'password_needed': '需要密码',
+                'admin_required': '需要管理员权限来配置网络',
+                'run_as_admin': '请以管理员身份运行命令提示符或 PowerShell',
                 
                 'configuring_network': '正在配置网络...',
                 'setting_static_ip': '设置静态 IP',
-                'enabling_forwarding': '启用 IP 转发',
-                'setting_nat': '设置 NAT',
+                'enabling_forwarding': '准备 Windows NAT' if IS_WINDOWS else '启用 IP 转发',
+                'setting_nat': '启用 Windows NAT' if IS_WINDOWS else '设置 NAT',
                 'sharing_enabled': '网络共享已启用！',
                 'rm01_can_access': 'RM-01 现在可以通过此电脑访问互联网。',
                 
@@ -194,12 +202,13 @@ class I18n:
                 
                 'disconnecting': '正在断开连接',
                 'no_active_connection': '未找到活动连接',
-                'removing_nat': '正在移除 NAT 规则...',
+                'removing_nat': '正在禁用 Windows NAT...' if IS_WINDOWS else '正在移除 NAT 规则...',
                 'restoring_dhcp': '正在恢复 DHCP...',
                 'sharing_disabled': '网络共享已禁用',
                 'failed_to_disable': '禁用共享失败',
                 
                 'ip_forwarding_disabled': 'IP 转发已禁用',
+                'diagnostic': '诊断信息',
                 
                 'commands': '命令',
                 'examples': '示例',
@@ -274,7 +283,58 @@ class CLI:
     
     def __init__(self):
         self.network_service = NetworkService()
-        self._state_file = "/tmp/rm01_connection_state"
+        self._state_file = os.path.join(tempfile.gettempdir(), "rm01_connection_state")
+
+    def _requires_password(self) -> bool:
+        """Only Unix-like service implementations use sudo passwords."""
+        return not IS_WINDOWS
+
+    def _ensure_admin(self) -> bool:
+        """Check Windows elevation before running privileged network changes."""
+        if not IS_WINDOWS:
+            return True
+        is_admin = getattr(self.network_service, "is_admin", None)
+        if is_admin and is_admin():
+            return True
+        print_error(i18n.t('admin_required'))
+        print_info(i18n.t('run_as_admin'))
+        return False
+
+    def _get_password_if_needed(self, password: Optional[str]) -> Optional[str]:
+        """Prompt for sudo password on platforms that need one."""
+        if not self._requires_password():
+            return None
+
+        if not password:
+            print()
+            print_info(i18n.t('password_required'))
+            try:
+                password = getpass.getpass(f"{i18n.t('password_prompt')}: ")
+            except (KeyboardInterrupt, EOFError):
+                print()
+                print_warning(i18n.t('cancelled'))
+                return None
+
+        if not password:
+            print_error(i18n.t('password_needed'))
+            return None
+        return password
+
+    def _is_permission_error(self, error: str) -> bool:
+        lower = error.lower()
+        return (
+            "permission" in lower
+            or "password" in lower
+            or "incorrect" in lower
+            or "administrator" in lower
+            or "access is denied" in lower
+        )
+
+    def _print_service_diagnostic(self):
+        """Print the last service-layer diagnostic if one is available."""
+        last_error = getattr(self.network_service, "last_error", None)
+        if last_error:
+            print_warning(f"{i18n.t('diagnostic')}: {last_error}")
     
     def _get_saved_state(self) -> Optional[dict]:
         """Get saved connection state"""
@@ -285,17 +345,18 @@ class CLI:
                     if len(lines) >= 2:
                         return {
                             'rm01_interface': lines[0].strip(),
-                            'upstream_interface': lines[1].strip()
+                            'upstream_interface': lines[1].strip(),
+                            'address_configured_by_app': len(lines) >= 3 and lines[2].strip() == '1',
                         }
         except Exception:
             pass
         return None
     
-    def _save_state(self, rm01_iface: str, upstream_iface: str):
+    def _save_state(self, rm01_iface: str, upstream_iface: str, address_configured_by_app: bool = False):
         """Save connection state"""
         try:
             with open(self._state_file, 'w') as f:
-                f.write(f"{rm01_iface}\n{upstream_iface}\n")
+                f.write(f"{rm01_iface}\n{upstream_iface}\n{1 if address_configured_by_app else 0}\n")
         except Exception:
             pass
     
@@ -316,6 +377,7 @@ class CLI:
         
         if not adapter:
             print_error(i18n.t('no_adapter'))
+            self._print_service_diagnostic()
             print_info(i18n.t('please_connect'))
             return 1
         
@@ -325,18 +387,23 @@ class CLI:
         print(f"  {i18n.t('type')}:  {adapter.description}")
         print()
         
-        # Check actual network configuration (not just state file)
-        is_configured = self._check_actual_connection(adapter.name)
-        
-        # Check if IP forwarding is enabled
-        try:
-            with open('/proc/sys/net/ipv4/ip_forward', 'r') as f:
-                forwarding = f.read().strip() == '1'
-        except Exception:
-            forwarding = False
-        
         # Get saved state for upstream info
         state = self._get_saved_state()
+        upstream_name = state.get('upstream_interface') if state else None
+
+        # Check actual network configuration (not just state file)
+        is_configured = self._check_actual_connection(adapter.name, upstream_name)
+
+        # On Windows, the service-level sharing check already verifies NetNat,
+        # private adapter IP, and RM-01 interface forwarding.
+        if IS_WINDOWS:
+            forwarding = True
+        else:
+            try:
+                with open('/proc/sys/net/ipv4/ip_forward', 'r') as f:
+                    forwarding = f.read().strip() == '1'
+            except Exception:
+                forwarding = False
         
         if is_configured and forwarding:
             print(f"{Colors.GREEN}{Colors.BOLD}{i18n.t('status_label')}: {i18n.t('connected')}{Colors.RESET}")
@@ -362,24 +429,32 @@ class CLI:
         elif is_configured and not forwarding:
             print(f"{Colors.YELLOW}{Colors.BOLD}{i18n.t('status_label')}: {i18n.t('partially_connected')}{Colors.RESET}")
             print_warning(i18n.t('ip_forwarding_disabled'))
+            self._print_service_diagnostic()
             
         else:
             print(f"{Colors.YELLOW}{Colors.BOLD}{i18n.t('status_label')}: {i18n.t('not_connected')}{Colors.RESET}")
+            self._print_service_diagnostic()
         
         print()
         return 0
     
-    def _check_actual_connection(self, interface: str) -> bool:
+    def _check_actual_connection(self, interface: str, upstream_interface: Optional[str] = None) -> bool:
         """
         Check if the interface is actually configured for sharing.
         
         Note: We cannot rely on IP address alone because RM-01's DHCP server
         will always assign 10.10.99.100 to this computer when connected.
         
-        The real indicator of "sharing enabled" is:
-        1. NAT (MASQUERADE) rules are present in iptables
-        2. IP forwarding is enabled
+        On Windows this delegates to the service, which checks Windows NAT,
+        RM-01 interface forwarding, and the private adapter IP. On Linux the
+        real indicator is whether NAT (MASQUERADE) rules are present.
         """
+        if IS_WINDOWS:
+            is_sharing_enabled = getattr(self.network_service, "is_sharing_enabled", None)
+            if not is_sharing_enabled:
+                return False
+            return is_sharing_enabled(interface, upstream_interface)
+
         # Check if there are NAT rules for this interface
         has_nat_rules = False
         for cmd in [['sudo', '-n', 'iptables', '-t', 'nat', '-L', 'POSTROUTING', '-n'],
@@ -401,6 +476,10 @@ class CLI:
     
     def _get_interface_ip(self, interface: str) -> Optional[str]:
         """Get the IP address of an interface"""
+        if IS_WINDOWS:
+            get_ip = getattr(self.network_service, "get_interface_ip", None)
+            return get_ip(interface) if get_ip else None
+
         try:
             result = subprocess.run(
                 ['ip', 'addr', 'show', interface],
@@ -442,11 +521,13 @@ class CLI:
                 print(f"  {i18n.t('interface')}: {upstream.name}")
             else:
                 print_warning(f"\n{i18n.t('no_upstream')}")
+                self._print_service_diagnostic()
             
             print()
             return 0
         else:
             print_error(i18n.t('no_adapter'))
+            self._print_service_diagnostic()
             print()
             print(f"{i18n.t('troubleshooting')}:")
             print(f"  1. {i18n.t('trouble1')}")
@@ -458,6 +539,9 @@ class CLI:
     def cmd_connect(self, password: Optional[str] = None):
         """Enable internet sharing to RM-01"""
         print_header()
+
+        if not self._ensure_admin():
+            return 1
         
         # Detect adapter
         print_info(i18n.t('detecting_adapter'))
@@ -465,6 +549,7 @@ class CLI:
         
         if not adapter:
             print_error(i18n.t('no_adapter'))
+            self._print_service_diagnostic()
             print_info(i18n.t('please_connect'))
             return 1
         
@@ -476,24 +561,14 @@ class CLI:
         
         if not upstream:
             print_error(i18n.t('no_upstream_found'))
+            self._print_service_diagnostic()
             print_info(i18n.t('ensure_internet'))
             return 1
         
         print_success(f"{i18n.t('found_upstream')}: {upstream.name}")
         
-        # Get password
-        if not password:
-            print()
-            print_info(i18n.t('password_required'))
-            try:
-                password = getpass.getpass(f"{i18n.t('password_prompt')}: ")
-            except (KeyboardInterrupt, EOFError):
-                print()
-                print_warning(i18n.t('cancelled'))
-                return 1
-        
-        if not password:
-            print_error(i18n.t('password_needed'))
+        password = self._get_password_if_needed(password)
+        if self._requires_password() and not password:
             return 1
         
         # Enable sharing
@@ -510,7 +585,8 @@ class CLI:
         )
         
         if success:
-            self._save_state(adapter.name, upstream.name)
+            address_configured = bool(getattr(self.network_service, "address_configured_by_app", False))
+            self._save_state(adapter.name, upstream.name, address_configured)
             print()
             print_success(i18n.t('sharing_enabled'))
             print()
@@ -519,8 +595,11 @@ class CLI:
             return 0
         else:
             print()
-            if "permission" in error.lower() or "password" in error.lower() or "incorrect" in error.lower():
-                print_error(i18n.t('auth_failed'))
+            if self._is_permission_error(error):
+                if IS_WINDOWS:
+                    print_error(error)
+                else:
+                    print_error(i18n.t('auth_failed'))
             else:
                 print_error(f"{i18n.t('failed_to_enable')}: {error}")
             return 1
@@ -528,6 +607,9 @@ class CLI:
     def cmd_disconnect(self, password: Optional[str] = None):
         """Disable internet sharing"""
         print_header()
+
+        if not self._ensure_admin():
+            return 1
         
         # Get saved state
         state = self._get_saved_state()
@@ -537,11 +619,10 @@ class CLI:
             adapter = self.network_service.detect_adapter()
             if adapter:
                 upstream = self.network_service.find_upstream_interface(adapter.name)
-                if upstream:
-                    state = {
-                        'rm01_interface': adapter.name,
-                        'upstream_interface': upstream.name
-                    }
+                state = {
+                    'rm01_interface': adapter.name,
+                    'upstream_interface': upstream.name if upstream else ''
+                }
         
         if not state:
             print_warning(i18n.t('no_active_connection'))
@@ -549,19 +630,8 @@ class CLI:
         
         print_info(f"{i18n.t('disconnecting')} {state['rm01_interface']}...")
         
-        # Get password
-        if not password:
-            print()
-            print_info(i18n.t('password_required'))
-            try:
-                password = getpass.getpass(f"{i18n.t('password_prompt')}: ")
-            except (KeyboardInterrupt, EOFError):
-                print()
-                print_warning(i18n.t('cancelled'))
-                return 1
-        
-        if not password:
-            print_error(i18n.t('password_needed'))
+        password = self._get_password_if_needed(password)
+        if self._requires_password() and not password:
             return 1
         
         # Disable sharing
@@ -569,11 +639,19 @@ class CLI:
         print_info(i18n.t('removing_nat'))
         print_info(i18n.t('restoring_dhcp'))
         
-        success, error = self.network_service.disable_sharing(
-            state['rm01_interface'],
-            state['upstream_interface'],
-            password
-        )
+        if IS_WINDOWS:
+            success, error = self.network_service.disable_sharing(
+                state['rm01_interface'],
+                state['upstream_interface'],
+                password,
+                restore_dhcp=bool(state.get('address_configured_by_app')),
+            )
+        else:
+            success, error = self.network_service.disable_sharing(
+                state['rm01_interface'],
+                state['upstream_interface'],
+                password,
+            )
         
         if success:
             self._clear_state()
@@ -583,8 +661,11 @@ class CLI:
             return 0
         else:
             print()
-            if "permission" in error.lower() or "password" in error.lower():
-                print_error(i18n.t('auth_failed'))
+            if self._is_permission_error(error):
+                if IS_WINDOWS:
+                    print_error(error)
+                else:
+                    print_error(i18n.t('auth_failed'))
             else:
                 print_error(f"{i18n.t('failed_to_disable')}: {error}")
             return 1
@@ -659,7 +740,7 @@ def main():
     
     parser.add_argument(
         '--password', '-p',
-        help='Sudo password (not recommended, use stdin instead)'
+        help='Sudo password for Unix-like fallback mode (ignored on Windows)'
     )
     
     parser.add_argument(

@@ -119,6 +119,7 @@ pip install -r requirements.txt
 - [ ] `python cli.py help` - Shows help message
 - [ ] `python cli.py --lang en status` - English status
 - [ ] `python cli.py --lang zh status` - Chinese status
+- [ ] `python -m unittest test_windows_cli.py` - Mocked Windows CLI regression tests pass
 
 #### Without RM-01 Connected
 - [ ] `python cli.py detect` - Shows "No adapter detected"
@@ -135,6 +136,9 @@ python cli.py connect
 - [ ] Detects adapter
 - [ ] Finds upstream network
 - [ ] Shows configuration progress
+- [ ] Enables Windows NAT via CLI without manual Network Settings changes
+- [ ] If the `MSFT_NetNat` provider is unavailable, fails before changing RM-01 adapter IP/DHCP state
+- [ ] If Windows NAT setup fails, CLI shows diagnostic output and restores RM-01 DHCP/DNS
 - [ ] Completes successfully
 - [ ] RM-01 has internet access
 
@@ -152,6 +156,7 @@ python cli.py status
 python cli.py disconnect
 ```
 - [ ] Shows disconnection progress
+- [ ] Disables Windows NAT for RM-01
 - [ ] Completes successfully
 - [ ] Status returns to idle
 
@@ -165,7 +170,7 @@ python cli.py disconnect
 ### 3. Edge Cases
 
 - [ ] Ctrl+C during command → cancels gracefully
-- [ ] Wrong password (if applicable) → shows error
+- [ ] `connect`/`disconnect` from non-admin shell → shows Administrator privilege error
 - [ ] Multiple rapid commands → handles correctly
 - [ ] Non-admin user → shows permission error
 
@@ -214,15 +219,16 @@ python cli.py disconnect
 
 Document any discovered limitations:
 
-1. **ICS Configuration**: CLI may require manual ICS setup through Windows Network Settings for full functionality
-2. **Traffic Stats**: CLI may not show accurate traffic statistics (limitation of netsh)
-3. **Multiple Adapters**: Behavior with multiple AX88179A adapters needs testing
+1. **Traffic Stats**: CLI traffic counters depend on `Get-NetAdapterStatistics`
+2. **Multiple Adapters**: Behavior with multiple AX88179A adapters needs testing
+3. **Windows NAT Validation**: GUI and CLI PowerShell NetNat configuration still needs validation on clean Windows 10/11 installations
 
 ---
 
 ## Regression Tests (After Changes)
 
 If code changes are made, re-test:
+- [ ] `cd win_version\cli && python -m unittest test_windows_cli.py`
 - [ ] All critical features still work
 - [ ] No new bugs introduced
 - [ ] Performance hasn't degraded

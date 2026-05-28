@@ -13,7 +13,7 @@ public sealed class NetworkSpeedMonitor : IDisposable
 {
     private readonly string _interfaceName;
     private readonly Action<double, double> _callback;
-    private Timer? _timer;
+    private System.Threading.Timer? _timer;
     private long _lastRxBytes;
     private long _lastTxBytes;
     private DateTime _lastUpdateTime;
@@ -51,7 +51,7 @@ public sealed class NetworkSpeedMonitor : IDisposable
         }
 
         // Update every 1 second
-        _timer = new Timer(Update, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        _timer = new System.Threading.Timer(Update, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
     /// <summary>
@@ -59,12 +59,17 @@ public sealed class NetworkSpeedMonitor : IDisposable
     /// </summary>
     public void Stop()
     {
-        _timer?.Dispose();
+        var timer = _timer;
         _timer = null;
+        timer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        timer?.Dispose();
     }
 
     private void Update(object? state)
     {
+        if (_disposed)
+            return;
+
         try
         {
             var (currentRx, currentTx) = GetInterfaceBytes();

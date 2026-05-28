@@ -67,6 +67,9 @@ public sealed class LocalizationManager : INotifyPropertyChanged
         { "tray_status_connecting", "Connecting..." },
         { "tray_status_failed", "Failed" },
         { "tray_status_idle", "Idle" },
+        { "connection_error_title", "RM-01 Connection Failed" },
+        { "winnat_unavailable_help", "Windows NAT is not available on this computer. The app stopped before changing the RM-01 adapter.\n\nWindows reported that MSFT_NetNat/New-NetNat is unavailable. Please repair or enable the Windows NAT networking components, then try again.\n\nDo not use manual Internet Connection Sharing as a workaround unless it has been verified, because ICS can force the adapter to 192.168.137.1.\n\nLog:" },
+        { "generic_connection_error_help", "Connection failed.\n\nLog:" },
     };
 
     private static readonly Dictionary<string, string> Cn = new(StringComparer.OrdinalIgnoreCase)
@@ -90,10 +93,8 @@ public sealed class LocalizationManager : INotifyPropertyChanged
         { "tray_status_connecting", "连接中..." },
         { "tray_status_failed", "连接失败" },
         { "tray_status_idle", "未连接" },
+        { "connection_error_title", "RM-01 连接失败" },
+        { "winnat_unavailable_help", "这台电脑的 Windows NAT 组件不可用。软件已在修改 RM-01 网卡之前停止。\n\nWindows 报告 MSFT_NetNat/New-NetNat 不可用。请先修复或启用 Windows NAT 网络组件，然后再重试。\n\n不要直接用手动 Internet 连接共享作为替代，除非已经验证可行，因为 ICS 可能会强制把网卡改成 192.168.137.1。\n\n日志:" },
+        { "generic_connection_error_help", "连接失败。\n\n日志:" },
     };
 }
-
-
-
-
-

@@ -10,13 +10,16 @@ public enum ConnectionStatus
 {
     Idle,
     Connecting,
+    Disconnecting,
     Connected,
     Failed
 }
 
-public sealed class AppState : INotifyPropertyChanged
+public sealed class AppState : INotifyPropertyChanged, IDisposable
 {
     private readonly IWindowsNetworkService _networkService;
+    private readonly SynchronizationContext? _stateContext;
+    private readonly CancellationTokenSource _lifetimeCts = new();
     private ConnectionStatus _status = ConnectionStatus.Idle;
     private NetworkInterfaceInfo? _currentInterface;
     private string _statusKey = "status_idle";
@@ -25,6 +28,7 @@ public sealed class AppState : INotifyPropertyChanged
     private double _uploadSpeed;
     private double _downloadSpeed;
     private NetworkSpeedMonitor? _speedMonitor;
+    private bool _disposed;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -75,18 +79,61 @@ public sealed class AppState : INotifyPropertyChanged
     public AppState(IWindowsNetworkService networkService)
     {
         _networkService = networkService;
+        _stateContext = SynchronizationContext.Current;
     }
 
-    public async Task RefreshInterfaceAsync()
+    public async Task RefreshInterfaceAsync(bool checkSharing = false)
     {
-        var nic = await _networkService.DetectAdapterAsync();
-        CurrentInterface = nic;
-        StatusKey = nic == null ? "interface_none" : "interface_found";
+        try
+        {
+            var nic = await _networkService.DetectAdapterAsync();
+            if (!CanApplyRefreshResult())
+                return;
+
+            CurrentInterface = nic;
+            LastError = null;
+            if (nic == null)
+            {
+                StopSpeedMonitoring();
+                Status = ConnectionStatus.Idle;
+                StatusKey = "interface_none";
+                return;
+            }
+
+            if (checkSharing && await _networkService.IsSharingEnabledAsync(nic, _lifetimeCts.Token))
+            {
+                if (!CanApplyRefreshResult())
+                    return;
+
+                Status = ConnectionStatus.Connected;
+                StatusKey = "status_connected";
+                StartSpeedMonitoring();
+                return;
+            }
+
+            StopSpeedMonitoring();
+            Status = ConnectionStatus.Idle;
+            StatusKey = "interface_found";
+        }
+        catch (OperationCanceledException)
+        {
+            // The app is shutting down.
+        }
+        catch (Exception ex)
+        {
+            if (!CanApplyRefreshResult())
+                return;
+
+            LastError = ex;
+            Status = ConnectionStatus.Failed;
+            StatusKey = "status_failed";
+        }
     }
 
     public async Task ConnectAsync()
     {
         if (IsBusy) return;
+        AppDiagnostics.Log("Connect requested");
         IsBusy = true;
         LastError = null;
         Status = ConnectionStatus.Connecting;
@@ -97,6 +144,7 @@ public sealed class AppState : INotifyPropertyChanged
             var nic = await _networkService.DetectAdapterAsync();
             if (nic == null)
             {
+                AppDiagnostics.Log("Connect failed: AX88179A adapter not detected");
                 Status = ConnectionStatus.Failed;
                 StatusKey = "interface_none";
                 LastError = new InvalidOperationException("未检测到 AX88179A 适配器");
@@ -104,21 +152,25 @@ public sealed class AppState : INotifyPropertyChanged
             }
 
             CurrentInterface = nic;
-            await _networkService.EnableSharingAsync(nic, CancellationToken.None);
+            AppDiagnostics.Log($"Connect using adapter: name={nic.Name}, description={nic.Description}, mac={nic.Mac}");
+            await _networkService.EnableSharingAsync(nic, _lifetimeCts.Token);
 
             Status = ConnectionStatus.Connected;
             StatusKey = "status_connected";
+            AppDiagnostics.Log("Connect completed");
             
             // Start speed monitoring
             StartSpeedMonitoring();
         }
         catch (OperationCanceledException)
         {
+            AppDiagnostics.Log("Connect cancelled");
             Status = ConnectionStatus.Idle;
             StatusKey = "status_idle";
         }
         catch (Exception ex)
         {
+            AppDiagnostics.LogException("Connect failed", ex);
             LastError = ex;
             Status = ConnectionStatus.Failed;
             StatusKey = "status_failed";
@@ -132,30 +184,45 @@ public sealed class AppState : INotifyPropertyChanged
     public async Task DisconnectAsync()
     {
         if (IsBusy) return;
+        AppDiagnostics.Log("Disconnect requested");
         IsBusy = true;
         LastError = null;
-        Status = ConnectionStatus.Connecting;
+        Status = ConnectionStatus.Disconnecting;
         StatusKey = "status_disconnecting";
 
         try
         {
-            // Stop speed monitoring
+            var nic = CurrentInterface ?? await _networkService.DetectAdapterAsync();
+            if (nic == null)
+            {
+                AppDiagnostics.Log("Disconnect skipped: AX88179A adapter not detected");
+                StopSpeedMonitoring();
+                Status = ConnectionStatus.Idle;
+                StatusKey = "interface_none";
+                CurrentInterface = null;
+                return;
+            }
+
+            CurrentInterface = nic;
+            AppDiagnostics.Log($"Disconnect using adapter: name={nic.Name}, description={nic.Description}, mac={nic.Mac}");
+            await _networkService.DisableSharingAsync(nic, _lifetimeCts.Token);
             StopSpeedMonitoring();
-            
-            await _networkService.DisableSharingAsync(CurrentInterface, CancellationToken.None);
             Status = ConnectionStatus.Idle;
             StatusKey = "status_idle";
             CurrentInterface = null;
+            AppDiagnostics.Log("Disconnect completed");
         }
         catch (OperationCanceledException)
         {
+            AppDiagnostics.Log("Disconnect cancelled");
             Status = ConnectionStatus.Connected;
             StatusKey = "status_connected";
         }
         catch (Exception ex)
         {
+            AppDiagnostics.LogException("Disconnect failed", ex);
             LastError = ex;
-            Status = ConnectionStatus.Failed;
+            Status = CurrentInterface == null ? ConnectionStatus.Failed : ConnectionStatus.Connected;
             StatusKey = "status_failed";
         }
         finally
@@ -173,6 +240,9 @@ public sealed class AppState : INotifyPropertyChanged
 
     private void StartSpeedMonitoring()
     {
+        if (_disposed)
+            return;
+
         if (CurrentInterface == null || Status != ConnectionStatus.Connected)
             return;
 
@@ -196,15 +266,46 @@ public sealed class AppState : INotifyPropertyChanged
 
     private void OnSpeedUpdated(double uploadSpeed, double downloadSpeed)
     {
-        UploadSpeed = uploadSpeed;
-        DownloadSpeed = downloadSpeed;
+        if (_disposed)
+            return;
+
+        RunOnStateContext(() =>
+        {
+            if (_disposed)
+                return;
+
+            UploadSpeed = uploadSpeed;
+            DownloadSpeed = downloadSpeed;
+        });
+    }
+
+    private bool CanApplyRefreshResult()
+    {
+        return !_disposed && !IsBusy && Status == ConnectionStatus.Idle;
+    }
+
+    private void RunOnStateContext(Action action)
+    {
+        if (_stateContext == null || SynchronizationContext.Current == _stateContext)
+        {
+            action();
+            return;
+        }
+
+        _stateContext.Post(_ => action(), null);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        _lifetimeCts.Cancel();
+        StopSpeedMonitoring();
+        _lifetimeCts.Dispose();
     }
 }
-
-
-
-
-
 
 
 

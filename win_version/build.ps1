@@ -6,12 +6,13 @@ param(
 $ErrorActionPreference = "Stop"
 $projectPath = Join-Path $PSScriptRoot "RM01InternetConnector.Win"
 $outputDir = Join-Path $PSScriptRoot "dist"
+$windowsTargeting = "-p:EnableWindowsTargeting=true"
 
 Write-Host "🔨 Building RM-01 Internet Connector Windows Edition..." -ForegroundColor Cyan
 
 if ($Clean) {
     Write-Host "Cleaning previous builds..."
-    dotnet clean $projectPath -c Release
+    dotnet clean $projectPath -c Release $windowsTargeting
     if (Test-Path $outputDir) {
         Remove-Item -Recurse -Force $outputDir
     }
@@ -19,7 +20,7 @@ if ($Clean) {
 
 # Restore packages
 Write-Host "Restoring packages..."
-dotnet restore $projectPath
+dotnet restore $projectPath $windowsTargeting
 
 if ($Publish) {
     Write-Host "Publishing release build..."
@@ -31,6 +32,7 @@ if ($Publish) {
         --self-contained true `
         -p:PublishSingleFile=true `
         -p:IncludeNativeLibrariesForSelfExtract=true `
+        $windowsTargeting `
         -o "$outputDir/RM-01 Internet Connector"
 
     if ($LASTEXITCODE -eq 0) {
@@ -48,7 +50,7 @@ if ($Publish) {
     }
 } else {
     # Regular build
-    dotnet build $projectPath -c Release
+    dotnet build $projectPath -c Release $windowsTargeting
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "✅ Build complete!" -ForegroundColor Green
