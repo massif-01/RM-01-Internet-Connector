@@ -1,8 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Drawing;
-using System.IO;
-using System.Threading.Tasks;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace RM01InternetConnector.Win;
@@ -13,12 +12,16 @@ public sealed class TrayController : IDisposable
     private readonly LocalizationManager _loc;
     private readonly Action _openWindow;
     private readonly Action _quit;
+    private readonly SynchronizationContext? _uiContext;
 
     private readonly NotifyIcon _notifyIcon;
     private readonly ToolStripMenuItem _speedItem;
     private readonly ToolStripSeparator _speedSeparator;
     private readonly ToolStripMenuItem _statusItem;
     private readonly ToolStripMenuItem _connectItem;
+    private readonly ToolStripMenuItem _openItem;
+    private readonly ToolStripMenuItem _quitItem;
+    private bool _disposed;
 
     public TrayController(AppState state, LocalizationManager loc, Action openWindow, Action quit)
     {
@@ -26,6 +29,7 @@ public sealed class TrayController : IDisposable
         _loc = loc;
         _openWindow = openWindow;
         _quit = quit;
+        _uiContext = SynchronizationContext.Current;
 
         _notifyIcon = new NotifyIcon
         {
@@ -47,17 +51,17 @@ public sealed class TrayController : IDisposable
         _statusItem = new ToolStripMenuItem { Enabled = false };
         _connectItem = new ToolStripMenuItem();
 
-        var openItem = new ToolStripMenuItem
+        _openItem = new ToolStripMenuItem
         {
             Text = _loc.Translate("tray_open")
         };
-        openItem.Click += (_, _) => _openWindow();
+        _openItem.Click += OnOpenClicked;
 
-        var quitItem = new ToolStripMenuItem
+        _quitItem = new ToolStripMenuItem
         {
             Text = _loc.Translate("tray_quit")
         };
-        quitItem.Click += (_, _) => _quit();
+        _quitItem.Click += OnQuitClicked;
 
         // Add menu items in order
         menu.Items.Add(_speedItem);
@@ -66,15 +70,15 @@ public sealed class TrayController : IDisposable
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_connectItem);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(openItem);
+        menu.Items.Add(_openItem);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(quitItem);
+        menu.Items.Add(_quitItem);
 
         _notifyIcon.ContextMenuStrip = menu;
-        _notifyIcon.DoubleClick += (_, _) => _openWindow();
+        _notifyIcon.DoubleClick += OnOpenClicked;
 
         _state.PropertyChanged += OnStateChanged;
-        _loc.PropertyChanged += (_, _) => UpdateMenu();
+        _loc.PropertyChanged += OnLocalizationChanged;
 
         UpdateMenu();
     }
@@ -84,8 +88,22 @@ public sealed class TrayController : IDisposable
         UpdateMenu();
     }
 
+    private void OnLocalizationChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        UpdateMenu();
+    }
+
     private void UpdateMenu()
     {
+        if (_disposed)
+            return;
+
+        if (_uiContext != null && SynchronizationContext.Current != _uiContext)
+        {
+            _uiContext.Post(state => UpdateMenu(), null);
+            return;
+        }
+
         // Update speed display
         if (_state.Status == ConnectionStatus.Connected)
         {
@@ -103,10 +121,15 @@ public sealed class TrayController : IDisposable
         _statusItem.Text = StatusTitle();
         
         // Update connect/disconnect button
-        _connectItem.Text = _state.IsConnected ? _loc.Translate("tray_disconnect") : _loc.Translate("tray_connect");
+        _connectItem.Text = _state.IsConnected || _state.Status == ConnectionStatus.Disconnecting
+            ? _loc.Translate("tray_disconnect")
+            : _loc.Translate("tray_connect");
         _connectItem.Enabled = !_state.IsBusy;
         _connectItem.Click -= OnConnectClicked;
         _connectItem.Click += OnConnectClicked;
+
+        _openItem.Text = _loc.Translate("tray_open");
+        _quitItem.Text = _loc.Translate("tray_quit");
     }
 
     private string StatusTitle()
@@ -115,13 +138,29 @@ public sealed class TrayController : IDisposable
         {
             ConnectionStatus.Connected => $"● {_loc.Translate("tray_status_connected")}",
             ConnectionStatus.Connecting => $"● {_loc.Translate("tray_status_connecting")}",
+            ConnectionStatus.Disconnecting => $"● {_loc.Translate("status_disconnecting")}",
             ConnectionStatus.Failed => $"● {_loc.Translate("tray_status_failed")}",
             _ => $"○ {_loc.Translate("tray_status_idle")}"
         };
     }
 
+    private void OnOpenClicked(object? sender, EventArgs e)
+    {
+        if (!_disposed)
+            _openWindow();
+    }
+
+    private void OnQuitClicked(object? sender, EventArgs e)
+    {
+        if (!_disposed)
+            _quit();
+    }
+
     private async void OnConnectClicked(object? sender, EventArgs e)
     {
+        if (_disposed)
+            return;
+
         if (_state.IsConnected)
         {
             await _state.DisconnectAsync();
@@ -136,16 +175,17 @@ public sealed class TrayController : IDisposable
     {
         try
         {
-            var path = Path.Combine(AppContext.BaseDirectory, "Assets", "icon.png");
-            if (File.Exists(path))
+            var streamInfo = System.Windows.Application.GetResourceStream(
+                new Uri("pack://application:,,,/Assets/icon.ico", UriKind.Absolute));
+            if (streamInfo?.Stream != null)
             {
-                using var bmp = new Bitmap(path);
-                return Icon.FromHandle(bmp.GetHicon());
+                using var stream = streamInfo.Stream;
+                return new Icon(stream);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // ignore and fallback
+            AppDiagnostics.LogException("Loading tray icon from embedded resource failed", ex);
         }
         return SystemIcons.Application;
     }
@@ -164,14 +204,22 @@ public sealed class TrayController : IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        _state.PropertyChanged -= OnStateChanged;
+        _loc.PropertyChanged -= OnLocalizationChanged;
+        _notifyIcon.DoubleClick -= OnOpenClicked;
+        _connectItem.Click -= OnConnectClicked;
+        _openItem.Click -= OnOpenClicked;
+        _quitItem.Click -= OnQuitClicked;
+
         _notifyIcon.Visible = false;
+        _notifyIcon.ContextMenuStrip?.Dispose();
         _notifyIcon.Dispose();
     }
 }
-
-
-
-
 
 
 

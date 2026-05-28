@@ -127,6 +127,7 @@ rm01-cli.exe --lang en status
 - **Runtime**: 
   - GUI: .NET 8.0 Runtime (included in build)
   - CLI: Python 3.8+ (for script mode) or none (for executable)
+- **Windows Components**: Windows PowerShell NetTCPIP/NetNat provider (Hyper-V/RAS-backed WinNAT must be available)
 - **Privileges**: Administrator rights for network configuration
 - **Hardware**: USB port for RM-01 connection
 
@@ -142,7 +143,7 @@ win_version/
 │   ├── AppState.cs                # State management & speed monitor
 │   ├── NetworkSpeedMonitor.cs     # Network speed monitoring
 │   ├── TrayController.cs          # System tray functionality
-│   ├── WindowsNetworkService.cs   # Network configuration & ICS
+│   ├── WindowsNetworkService.cs   # Network configuration & Windows NAT
 │   └── Assets/                    # Icons and images
 ├── cli/                           # CLI Tool (Python)
 │   ├── cli.py                     # Main CLI program
@@ -166,13 +167,13 @@ RM-01 contains an AX88179A switch chip that:
 This application:
 1. Detects the AX88179A USB adapter
 2. Configures static IP (10.10.99.100) for stability
-3. Enables Internet Connection Sharing (ICS) from Wi-Fi/Ethernet to RM-01
+3. Enables Windows NAT/IPv4 forwarding from Wi-Fi/Ethernet to RM-01
 4. Monitors real-time network speed (GUI only)
 
 **Network Configuration**:
 - **RM-01 Interface IP**: 10.10.99.100
 - **Subnet Mask**: 255.255.255.0
-- **Gateway**: 10.10.99.100
+- **Gateway**: none on the Windows RM-01 adapter
 - **DNS**: 8.8.8.8
 
 ---
@@ -267,7 +268,16 @@ See comprehensive testing checklist in [`TESTING_GUIDE.md`](TESTING_GUIDE.md)
 
 ## Changelog
 
-### Version 1.1.0 (Latest)
+### Version 1.1.5 (Latest)
+
+**GUI / CLI**:
+- Replaced Windows Internet Connection Sharing automation with Windows NAT.
+- Fail before changing the RM-01 adapter when the Windows NAT provider is unavailable.
+- Preserve an existing `10.10.99.100/24` RM-01 adapter address instead of forcing DHCP rollback.
+- Added diagnostics logging and a Windows diagnostics collection script.
+- Added explicit GUI error prompts for `MSFT_NetNat` / `New-NetNat` system component failures.
+
+### Version 1.1.0
 
 **GUI**:
 - Added real-time network speed monitoring
@@ -295,19 +305,18 @@ See comprehensive testing checklist in [`TESTING_GUIDE.md`](TESTING_GUIDE.md)
 
 ## Known Limitations
 
-1. **ICS Configuration**: CLI may require manual ICS setup for full functionality (GUI uses COM interface and handles this automatically)
-2. **Speed Accuracy**: Speed monitoring shows computer perspective (not RM-01 internal traffic)
-3. **Multi-Adapter**: Only first detected AX88179A is used
+1. **Speed Accuracy**: Speed monitoring shows computer perspective (not RM-01 internal traffic)
+2. **Multi-Adapter**: Only first detected AX88179A is used
+3. **Windows NAT Availability**: GUI and CLI fail before changing the RM-01 adapter when the Windows `MSFT_NetNat` provider is unavailable
 
 ---
 
 ## Future Plans
 
-- [ ] Enhanced ICS support in CLI
-- [ ] Traffic statistics in CLI
+- [ ] Network interface selection (if multiple upstreams)
+- [ ] Clean Windows 10/11 validation for GUI/CLI Windows NAT automation
 - [ ] Connection history logging
 - [ ] Auto-reconnect on adapter plug-in
-- [ ] Network interface selection (if multiple upstreams)
 
 ---
 

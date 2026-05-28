@@ -15,10 +15,12 @@ Command-line interface for controlling RM-01 network sharing on Windows.
 - Python 3.8 or later
 - Windows 10/11
 - Administrator privileges
+- Windows PowerShell (included with Windows 10/11)
 
 ### For Executable Mode
 - Windows 10/11
 - Administrator privileges
+- Windows PowerShell (included with Windows 10/11)
 - No Python installation required!
 
 ## Installation
@@ -34,6 +36,11 @@ pip install -r requirements.txt
 2. Run the CLI:
 ```cmd
 python cli.py status
+```
+
+3. Run mocked CLI regression tests:
+```cmd
+python -m unittest test_windows_cli.py
 ```
 
 ### Method 2: Standalone Executable (End Users)
@@ -111,7 +118,7 @@ Process:
 1. Detects RM-01 adapter
 2. Finds upstream network (Wi-Fi/Ethernet)
 3. Configures static IP (10.10.99.100)
-4. Enables Internet Connection Sharing (ICS)
+4. Enables Windows NAT and IPv4 forwarding
 
 Output:
 ```
@@ -121,8 +128,8 @@ Output:
 ✓ Found upstream: Wi-Fi
 → Configuring network...
   Setting static IP: 10.10.99.100
-  Enabling IP forwarding
-  Setting NAT: Ethernet 3 → Wi-Fi
+  Preparing Windows NAT
+  Enabling Windows NAT: Ethernet 3 → Wi-Fi
 
 ✓ Internet sharing enabled!
 
@@ -140,7 +147,7 @@ Output:
 ```
 → Disconnecting Ethernet 3...
 
-→ Removing NAT rules...
+→ Disabling Windows NAT...
 → Restoring DHCP...
 
 ✓ Internet sharing disabled
@@ -250,21 +257,16 @@ echo Connected successfully!
 
 ## Notes
 
-### Internet Connection Sharing (ICS)
+### Windows NAT
 
-The Windows CLI uses `netsh` commands for basic configuration. Full ICS (Internet Connection Sharing) support may require:
-
-1. Manual ICS configuration through Network Settings, OR
-2. Using the GUI version which has full COM-based ICS support
-
-For the most reliable ICS experience on Windows, we recommend using the GUI application.
+The Windows CLI configures the RM-01 adapter with `netsh` and uses built-in PowerShell NetTCPIP/NetNat cmdlets to enable IPv4 forwarding and NAT. It does not use Windows Internet Connection Sharing, because ICS forces private adapters to `192.168.137.1`. Run `connect` and `disconnect` from an elevated Command Prompt or PowerShell window. If the `MSFT_NetNat` provider is unavailable, the CLI fails before changing the RM-01 adapter so existing SSH sessions are not reset.
 
 ### Network Configuration
 
 The CLI configures the RM-01 interface with:
 - **IP**: 10.10.99.100
 - **Subnet**: 255.255.255.0
-- **Gateway**: 10.10.99.100
+- **Gateway**: none on the Windows RM-01 adapter
 - **DNS**: 8.8.8.8
 
 This matches RM-01's expected network configuration.

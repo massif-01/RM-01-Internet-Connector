@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -10,6 +11,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 {
     private readonly AppState _state;
     private readonly LocalizationManager _loc;
+    private readonly SynchronizationContext? _uiContext;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -20,6 +22,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         _state = state;
         _loc = loc;
+        _uiContext = SynchronizationContext.Current;
 
         _state.PropertyChanged += (_, _) => Refresh();
         _loc.PropertyChanged += (_, _) => Refresh();
@@ -38,7 +41,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string StatusText => _loc.Translate(_state.StatusKey);
     public string InterfaceText => _state.CurrentInterface?.Name ?? _loc.Translate("hint_insert");
     public string DeviceDescription => _state.CurrentInterface?.Description ?? string.Empty;
-    public string ButtonText => _state.IsConnected ? _loc.Translate("disconnect") : _loc.Translate("connect");
+    public string ButtonText => _state.IsConnected || _state.Status == ConnectionStatus.Disconnecting
+        ? _loc.Translate("disconnect")
+        : _loc.Translate("connect");
     public string LanguageLabel => _loc.LanguageLabel;
     public bool IsBusy => _state.IsBusy;
     public bool IsConnected => _state.IsConnected;
@@ -58,6 +63,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     private void Refresh([CallerMemberName] string? _ = null)
+    {
+        if (_uiContext != null && SynchronizationContext.Current != _uiContext)
+        {
+            _uiContext.Post(state => RefreshOnUiThread(), null);
+            return;
+        }
+
+        RefreshOnUiThread();
+    }
+
+    private void RefreshOnUiThread()
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StatusText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(InterfaceText)));
@@ -87,9 +103,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return $"{bytesPerSecond / 1024 / 1024 / 1024:F2}GB/s";
     }
 }
-
-
-
 
 
 

@@ -6,11 +6,15 @@
         xmlns:local="clr-namespace:RM01InternetConnector.Win"
         mc:Ignorable="d"
         Title="RM-01 Internet Connector"
-        Width="315" Height="440"
+        Width="380" Height="580"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
-        Background="#F9FAFB"
-        Icon="Assets/icon.png">
+        Icon="Assets/icon.ico"
+        Background="#F7F8FA"
+        FontFamily="Segoe UI"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display">
     <Window.Resources>
         <LinearGradientBrush x:Key="ConnectBrush" StartPoint="0,0" EndPoint="0,1">
             <GradientStop Color="#2DD45B" Offset="0"/>
@@ -36,19 +40,17 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="border"
-                                CornerRadius="12"
+                                CornerRadius="8"
                                 Background="{TemplateBinding Background}"
                                 SnapsToDevicePixels="True"
                                 BorderBrush="#50FFFFFF"
                                 BorderThickness="1"
-                                Opacity="{TemplateBinding Opacity}">
+                                Opacity="{TemplateBinding Opacity}"
+                                RenderTransformOrigin="0.5,0.5">
                             <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="20"/>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="10"/>
-                                </Grid.RowDefinitions>
-                                <Rectangle Grid.Row="0">
+                                <Rectangle Height="20"
+                                           VerticalAlignment="Top"
+                                           IsHitTestVisible="False">
                                     <Rectangle.Fill>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                             <GradientStop Color="#66FFFFFF" Offset="0"/>
@@ -56,11 +58,9 @@
                                         </LinearGradientBrush>
                                     </Rectangle.Fill>
                                 </Rectangle>
-                                <ContentPresenter Grid.Row="1"
-                                                  HorizontalAlignment="Center"
-                                                  VerticalAlignment="Center"
-                                                  RecognizesAccessKey="True"/>
-                                <Rectangle Grid.Row="2">
+                                <Rectangle Height="10"
+                                           VerticalAlignment="Bottom"
+                                           IsHitTestVisible="False">
                                     <Rectangle.Fill>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                             <GradientStop Color="#00FFFFFF" Offset="0"/>
@@ -68,6 +68,10 @@
                                         </LinearGradientBrush>
                                     </Rectangle.Fill>
                                 </Rectangle>
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  RecognizesAccessKey="True"/>
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -102,181 +106,106 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Grid Grid.Row="0" Margin="16,16,16,12">
+        <Grid Grid.Row="0" Margin="22,18,22,12">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <!-- Language button on left -->
-            <Button Grid.Column="0"
-                    HorizontalAlignment="Left"
+            <Image Grid.Column="0"
+                   Source="pack://application:,,,/Assets/icon.png"
+                   Width="28"
+                   Height="28"
+                   Margin="0,0,10,0"
+                   VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="1"
+                       VerticalAlignment="Center"
+                       FontWeight="SemiBold"
+                       FontSize="18"
+                       Foreground="#111827"
+                       Text="{Binding WindowTitle}"
+                       TextTrimming="CharacterEllipsis"/>
+            <Button Grid.Column="2"
+                    HorizontalAlignment="Right"
                     Command="{Binding ToggleLanguageCommand}"
-                    Padding="8,4"
-                    FontWeight="Bold"
-                    BorderBrush="#33000000"
+                    Width="54"
+                    Height="32"
+                    Padding="6,0"
+                    FontWeight="SemiBold"
+                    BorderBrush="#22000000"
                     BorderThickness="1"
-                    Background="#191BBA3F"
+                    Background="#0F1BBA3F"
                     Foreground="#1B1B1B"
                     Cursor="Hand">
-                <StackPanel Orientation="Horizontal">
-                    <Image Source="Assets/translate.png" Width="14" Height="14" Margin="0,0,4,0"/>
-                    <TextBlock Text="{Binding LanguageLabel}" VerticalAlignment="Center"/>
-                </StackPanel>
+                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Image Grid.Column="0"
+                           Source="pack://application:,,,/Assets/translate.png"
+                           Width="14"
+                           Height="14"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding LanguageLabel}"
+                               FontSize="13"
+                               VerticalAlignment="Center"/>
+                </Grid>
             </Button>
-            <!-- Centered title -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
-                <Image Source="Assets/earth-line.png" Width="22" Height="22" Margin="0,0,8,0"/>
-                <TextBlock VerticalAlignment="Center"
-                           FontWeight="SemiBold"
-                           FontSize="14"
-                           Text="{Binding WindowTitle}"/>
-            </StackPanel>
         </Grid>
 
         <Rectangle Grid.Row="1" Height="1" Fill="#11000000" Margin="12,0"/>
 
         <!-- Status -->
-        <StackPanel Grid.Row="2" Margin="0,10" HorizontalAlignment="Center">
-            <TextBlock FontSize="20" FontWeight="Medium" Text="{Binding StatusText}"/>
-            <TextBlock FontSize="12" Foreground="#666" Text="{Binding InterfaceText}" HorizontalAlignment="Center"/>
+        <StackPanel Grid.Row="2" Margin="22,18,22,8" HorizontalAlignment="Center">
+            <TextBlock FontSize="30"
+                       FontWeight="SemiBold"
+                       Foreground="#111827"
+                       Text="{Binding StatusText}"
+                       HorizontalAlignment="Center"/>
+            <TextBlock FontSize="15"
+                       Foreground="#5B6472"
+                       Text="{Binding InterfaceText}"
+                       ToolTip="{Binding DeviceDescription}"
+                       TextTrimming="CharacterEllipsis"
+                       MaxWidth="310"
+                       HorizontalAlignment="Center"/>
         </StackPanel>
 
         <!-- Device visual -->
-        <Grid Grid.Row="3" Margin="0,10">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-            <Grid HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="True">
-                <Image x:Name="DeviceImage"
-                       Source="Assets/body.png"
-                       Stretch="Uniform"
-                       Width="100"
-                       Height="178"
-                       RenderTransformOrigin="0.5,0.5">
-                    <Image.RenderTransform>
-                        <ScaleTransform ScaleX="1" ScaleY="1"/>
-                    </Image.RenderTransform>
-                    <Image.Style>
-                        <Style TargetType="Image">
-                            <Setter Property="Effect">
-                                <Setter.Value>
-                                    <DropShadowEffect x:Name="GlowEffect" Color="#E04444" BlurRadius="18" ShadowDepth="0" Opacity="0.0"/>
-                                </Setter.Value>
-                            </Setter>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsConnected}" Value="True">
-                                    <Setter Property="Effect">
-                                        <Setter.Value>
-                                            <DropShadowEffect Color="#22CC44" BlurRadius="18" ShadowDepth="0" Opacity="0.0"/>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <DataTrigger.EnterActions>
-                                        <BeginStoryboard>
-                                            <Storyboard BeginTime="0:0:1.4">
-                                                <DoubleAnimation Storyboard.TargetProperty="Effect.Opacity"
-                                                                 From="0.0" To="0.4"
-                                                                 Duration="0:0:1"
-                                                                 AutoReverse="True"
-                                                                 RepeatBehavior="Forever"/>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </DataTrigger.EnterActions>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding IsConnected}" Value="False">
-                                    <Setter Property="Effect">
-                                        <Setter.Value>
-                                            <DropShadowEffect Color="#E04444" BlurRadius="18" ShadowDepth="0" Opacity="0.0"/>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <DataTrigger.EnterActions>
-                                        <BeginStoryboard>
-                                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                                                <DoubleAnimation Storyboard.TargetProperty="Effect.Opacity"
-                                                                 From="0.0" To="0.4"
-                                                                 Duration="0:0:1"/>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </DataTrigger.EnterActions>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Image.Style>
-                </Image>
-                <Rectangle x:Name="Sweep"
-                           Width="80"
-                           Height="534"
-                           RenderTransformOrigin="0.5,0.5"
-                           Visibility="Collapsed">
-                    <Rectangle.Fill>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#00FFFFFF" Offset="0"/>
-                            <GradientStop Color="#80FFFFFF" Offset="0.3"/>
-                            <GradientStop Color="#F2FFFFFF" Offset="0.5"/>
-                            <GradientStop Color="#80FFFFFF" Offset="0.7"/>
-                            <GradientStop Color="#00FFFFFF" Offset="1"/>
-                        </LinearGradientBrush>
-                    </Rectangle.Fill>
-                    <Rectangle.Effect>
-                        <BlurEffect Radius="15"/>
-                    </Rectangle.Effect>
-                    <Rectangle.RenderTransform>
-                        <TransformGroup>
-                            <RotateTransform Angle="25"/>
-                            <TranslateTransform x:Name="SweepTranslate" X="-120"/>
-                        </TransformGroup>
-                    </Rectangle.RenderTransform>
-                    <Rectangle.OpacityMask>
-                        <ImageBrush ImageSource="Assets/body.png" Stretch="Uniform"/>
-                    </Rectangle.OpacityMask>
-                    <Rectangle.Style>
-                        <Style TargetType="Rectangle">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsConnected}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                    <DataTrigger.EnterActions>
-                                        <BeginStoryboard>
-                                            <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(TransformGroup.Children)[1].X"
-                                                                 From="-120" To="120" Duration="0:0:1.4">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseInOut"/>
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
-                                                    <DiscreteObjectKeyFrame KeyTime="0:0:1.4" Value="{x:Static Visibility.Collapsed}"/>
-                                                </ObjectAnimationUsingKeyFrames>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </DataTrigger.EnterActions>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Rectangle.Style>
-                </Rectangle>
-            </Grid>
+        <Grid Grid.Row="3" Margin="0,2,0,4" MinHeight="230">
+            <Image x:Name="DeviceImage"
+                   Source="pack://application:,,,/Assets/body.png"
+                   Stretch="Uniform"
+                   Width="156"
+                   MaxHeight="246"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
         </Grid>
 
         <!-- Speed display and Connect button -->
-        <Grid Grid.Row="4" Margin="0,10,0,0">
+        <Grid Grid.Row="4" Margin="22,10,22,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
-            <!-- Network speed display (always takes space, content hidden when disconnected) -->
+            <!-- Network speed display -->
             <Border Grid.Row="0" 
                     Margin="0,0,0,12" 
-                    Background="{Binding IsConnected, Converter={StaticResource boolToOpacityBrushConverter}}" 
-                    CornerRadius="10"
-                    Width="180"
+                    Background="#19000000"
+                    CornerRadius="8"
+                    Width="224"
                     Height="36"
-                    HorizontalAlignment="Center">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Padding="12,8"
-                            Opacity="{Binding IsConnected, Converter={StaticResource boolToOpacityConverter}}">
+                    HorizontalAlignment="Center"
+                    Visibility="{Binding IsConnected, Converter={StaticResource boolToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <!-- Upload speed -->
                     <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
-                        <Image Source="Assets/arrow-drop-up-line.png" Width="14" Height="14" Margin="0,0,4,0"/>
+                        <Image Source="pack://application:,,,/Assets/arrow-drop-up-line.png" Width="14" Height="14" Margin="0,0,4,0"/>
                         <TextBlock Text="{Binding UploadSpeedText}" FontFamily="Consolas" FontSize="14"/>
                     </StackPanel>
                     
@@ -284,7 +213,7 @@
                     
                     <!-- Download speed -->
                     <StackPanel Orientation="Horizontal">
-                        <Image Source="Assets/arrow-drop-down-line.png" Width="14" Height="14" Margin="0,0,4,0"/>
+                        <Image Source="pack://application:,,,/Assets/arrow-drop-down-line.png" Width="14" Height="14" Margin="0,0,4,0"/>
                         <TextBlock Text="{Binding DownloadSpeedText}" FontFamily="Consolas" FontSize="14"/>
                     </StackPanel>
                 </StackPanel>
@@ -296,27 +225,37 @@
                     Background="{Binding IsConnected, Converter={StaticResource boolToBrushConverter}, ConverterParameter='connect'}"
                     Command="{Binding ConnectCommand}"
                     IsEnabled="{Binding IsBusy, Converter={StaticResource invertBoolConverter}}"
-                    Width="180"
+                    Width="224"
                     Height="52"
                     HorizontalAlignment="Center">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Image Source="Assets/shut-down-line.png" Width="16" Height="16" Margin="0,0,8,0"/>
-                    <TextBlock Text="{Binding ButtonText}"/>
-                </StackPanel>
+                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="26"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Image Grid.Column="0"
+                           Source="pack://application:,,,/Assets/shut-down-line.png"
+                           Width="16"
+                           Height="16"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding ButtonText}"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                </Grid>
             </Button>
         </Grid>
 
         <!-- Footer -->
         <TextBlock Grid.Row="5"
-                   Margin="0,20,0,12"
+                   Margin="22,20,22,14"
                    HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   TextWrapping="Wrap"
                    Foreground="#88000000"
-                   FontSize="10"
+                   FontSize="11"
                    Text="Copyright © 2026 massif-01, RMinte AI Technology Co., Ltd."/>
     </Grid>
 </Window>
-
-
-
-
-

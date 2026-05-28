@@ -1,8 +1,4 @@
 # RM-01 Internet Connector - Windows CLI Dependencies
 
-# Colored terminal output (Windows compatible)
-colorama>=0.4.6
-
-# Optional: Windows API access for advanced ICS features
-# Uncomment if you want full ICS COM interface support
-# pywin32>=306
+# The CLI currently uses only Python's standard library plus built-in Windows
+# tools. Windows NAT uses built-in PowerShell cmdlets; no pywin32 dependency is required.

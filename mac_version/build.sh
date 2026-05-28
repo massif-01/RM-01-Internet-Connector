@@ -8,7 +8,7 @@ set -e
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="RM-01 Internet Connector"
 BUNDLE_ID="com.rm01.internetconnector"
-VERSION="1.1.4"
+VERSION="1.1.5"
 
 echo "🔨 Building RM-01 Internet Connector..."
 
